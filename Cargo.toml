@@ -4,6 +4,10 @@ version = "0.0.1"
 authors = ["Tim Hütz <tim@huetz.biz>"]
 edition = "2018"
 
+[[bin]]
+name = "weather_station_backend"
+path = "src/main.rs"
+
 [dependencies]
 log = "0.4.6"
 simplelog = "0.5.3"
