@@ -11,7 +11,6 @@ path = "src/bin/main.rs"
 [dependencies]
 log = "0.4.6"
 simplelog = "0.5.3"
-serde_yaml = "0.8.9"
 rocket = "0.4.1"
 rocket_codegen = "0.4.1"
 serde = "1.0.91"
