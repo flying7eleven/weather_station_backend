@@ -6,7 +6,7 @@ edition = "2018"
 
 [[bin]]
 name = "weather_station_backend"
-path = "src/main.rs"
+path = "src/bin/main.rs"
 
 [dependencies]
 log = "0.4.6"
