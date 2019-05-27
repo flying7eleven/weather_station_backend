@@ -1,3 +1,4 @@
+use futures::stream::Stream;
 use hyper::rt::Future;
 use hyper::service::service_fn_ok;
 use hyper::{Body, Method, Request, Response, Server, StatusCode};
@@ -6,6 +7,7 @@ use serde_json::json;
 use serde_json::Value;
 use simplelog::{CombinedLogger, Config, LevelFilter, TermLogger, WriteLogger};
 use std::fs::File;
+use weather_station_backend::boundary::Measurement;
 
 // a (currently) hard coded list of all valid sensor IDs
 static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
@@ -34,6 +36,22 @@ fn store_measurement(sensor: &str, body: &Body) -> Response<Body> {
             .body(Body::from(""))
             .unwrap();
     }
+
+    // wait until we received all the content of the body
+    let body_content = body.concat2().map(|v| v);
+
+    // convert the received measurement to the corresponding object
+    let measurement: Measurement = serde_json::from_str("").unwrap_or(Measurement {
+        temperature: 0.0,
+        humidity: 0.0,
+        pressure: 0.0,
+    });
+
+    // temporary log the received values
+    error!(
+        "Temp: {} :: Humidity: {} :: Pressure: {}",
+        measurement.temperature, measurement.humidity, measurement.pressure
+    );
 
     // everything was successfully done, we can return a successful state
     return Response::builder()
