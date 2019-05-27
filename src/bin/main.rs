@@ -15,14 +15,10 @@ use std::fs::File;
 static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
 
 #[cfg(debug_assertions)]
-fn get_logging_level() -> LevelFilter {
-    LevelFilter::Trace
-}
+const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
 
 #[cfg(not(debug_assertions))]
-fn get_logging_level() -> LevelFilter {
-    LevelFilter::Info
-}
+const LOGGING_LEVEL: LevelFilter = LevelFilter::Info;
 
 #[derive(Serialize, Deserialize)]
 pub struct TemperatureMeasurement {
@@ -59,9 +55,9 @@ fn get_version_str() -> String {
 fn main() {
     // configure the logging framework and set the corresponding log level
     let logger_init = CombinedLogger::init(vec![
-        TermLogger::new(get_logging_level(), Config::default()).unwrap(),
+        TermLogger::new(LOGGING_LEVEL, Config::default()).unwrap(),
         WriteLogger::new(
-            get_logging_level(),
+            LOGGING_LEVEL,
             Config::default(),
             File::create("weather_station_backend.log").unwrap(),
         ),
