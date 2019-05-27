@@ -1,5 +1,4 @@
 use log::{debug, info};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use simplelog::{CombinedLogger, Config, LevelFilter, TermLogger, WriteLogger};
@@ -13,11 +12,6 @@ const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
 
 #[cfg(not(debug_assertions))]
 const LOGGING_LEVEL: LevelFilter = LevelFilter::Info;
-
-#[derive(Serialize, Deserialize)]
-pub struct TemperatureMeasurement {
-    pub value: f32,
-}
 
 fn get_version_str() -> String {
     format!(
