@@ -1,6 +1,7 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
 use log::{debug, info};
+use rocket::http::Status;
 use rocket::{get, post};
 use rocket_codegen::routes;
 use rocket_contrib::json::Json;
@@ -9,6 +10,9 @@ use serde_json::json;
 use serde_json::Value;
 use simplelog::{CombinedLogger, Config, LevelFilter, TermLogger, WriteLogger};
 use std::fs::File;
+
+// a (currently) hard coded list of all valid sensor IDs
+static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
 
 #[cfg(debug_assertions)]
 fn get_logging_level() -> LevelFilter {
@@ -34,9 +38,12 @@ pub fn get_current_temperature_measurements() -> Json<Value> {
 pub fn store_temperature_measurement(
     sensor: String,
     temperature: Json<TemperatureMeasurement>,
-) -> Json<TemperatureMeasurement> {
+) -> Status {
+    if !VALID_SENSORS.contains(&&*sensor.to_uppercase()) {
+        return Status::BadRequest;
+    }
     debug!("Got temperature measurement for sensor {}", sensor);
-    temperature
+    Status::Ok
 }
 
 fn get_version_str() -> String {
@@ -73,6 +80,11 @@ fn main() {
         "Starting up the REST API for the Weather Station in version {}...",
         get_version_str()
     );
+
+    // print all valid sensors
+    for sensor_id in VALID_SENSORS.iter() {
+        info!("{} is a valid sensor identifier", sensor_id);
+    }
 
     //
     rocket::ignite()
