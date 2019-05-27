@@ -1,9 +1,10 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
-use log::info;
-use rocket::get;
+use log::{debug, info};
+use rocket::{get, post};
 use rocket_codegen::routes;
 use rocket_contrib::json::Json;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use simplelog::{CombinedLogger, Config, LevelFilter, TermLogger, WriteLogger};
@@ -19,9 +20,23 @@ fn get_logging_level() -> LevelFilter {
     LevelFilter::Info
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct TemperatureMeasurement {
+    pub value: f32,
+}
+
 #[get("/temperature")]
 pub fn get_current_temperature_measurements() -> Json<Value> {
     Json(json!({}))
+}
+
+#[post("/temperature/<sensor>", data = "<temperature>")]
+pub fn store_temperature_measurement(
+    sensor: String,
+    temperature: Json<TemperatureMeasurement>,
+) -> Json<TemperatureMeasurement> {
+    debug!("Got temperature measurement for sensor {}", sensor);
+    temperature
 }
 
 fn get_version_str() -> String {
@@ -61,6 +76,12 @@ fn main() {
 
     //
     rocket::ignite()
-        .mount("/v1", routes![get_current_temperature_measurements])
+        .mount(
+            "/v1",
+            routes![
+                get_current_temperature_measurements,
+                store_temperature_measurement
+            ],
+        )
         .launch();
 }
