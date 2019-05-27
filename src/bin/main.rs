@@ -1,4 +1,11 @@
+#![feature(proc_macro_hygiene, decl_macro)]
+
 use log::info;
+use rocket::get;
+use rocket_codegen::routes;
+use rocket_contrib::json::Json;
+use serde_json::json;
+use serde_json::Value;
 use simplelog::{CombinedLogger, Config, LevelFilter, TermLogger, WriteLogger};
 use std::fs::File;
 
@@ -10,6 +17,11 @@ fn get_logging_level() -> LevelFilter {
 #[cfg(not(debug_assertions))]
 fn get_logging_level() -> LevelFilter {
     LevelFilter::Info
+}
+
+#[get("/temperature")]
+pub fn get_current_temperature_measurements() -> Json<Value> {
+    Json(json!({}))
 }
 
 fn get_version_str() -> String {
@@ -46,4 +58,9 @@ fn main() {
         "Starting up the REST API for the Weather Station in version {}...",
         get_version_str()
     );
+
+    //
+    rocket::ignite()
+        .mount("/v1", routes![get_current_temperature_measurements])
+        .launch();
 }
