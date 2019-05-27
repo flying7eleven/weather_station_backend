@@ -1,10 +1,4 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 use log::{debug, info};
-use rocket::http::Status;
-use rocket::{get, post};
-use rocket_codegen::routes;
-use rocket_contrib::json::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
@@ -23,23 +17,6 @@ const LOGGING_LEVEL: LevelFilter = LevelFilter::Info;
 #[derive(Serialize, Deserialize)]
 pub struct TemperatureMeasurement {
     pub value: f32,
-}
-
-#[get("/temperature")]
-pub fn get_current_temperature_measurements() -> Json<Value> {
-    Json(json!({}))
-}
-
-#[post("/temperature/<sensor>", data = "<temperature>")]
-pub fn store_temperature_measurement(
-    sensor: String,
-    temperature: Json<TemperatureMeasurement>,
-) -> Status {
-    if !VALID_SENSORS.contains(&&*sensor.to_uppercase()) {
-        return Status::BadRequest;
-    }
-    debug!("Got temperature measurement for sensor {}", sensor);
-    Status::Ok
 }
 
 fn get_version_str() -> String {
@@ -81,15 +58,4 @@ fn main() {
     for sensor_id in VALID_SENSORS.iter() {
         info!("{} is a valid sensor identifier", sensor_id);
     }
-
-    //
-    rocket::ignite()
-        .mount(
-            "/v1",
-            routes![
-                get_current_temperature_measurements,
-                store_temperature_measurement
-            ],
-        )
-        .launch();
 }
