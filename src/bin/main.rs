@@ -1,10 +1,12 @@
-use futures::{future, Future};
+use futures::stream::Stream;
+use futures::Future;
 use hyper::service::service_fn;
-use hyper::{Body, Method, Request, Response, Server, StatusCode};
-use log::{error, info};
+use hyper::{Body, Request, Response, Server, StatusCode};
+use log::{error, info, warn};
 use simplelog::{CombinedLogger, Config, LevelFilter, TermLogger, WriteLogger};
 use std::fs::File;
 use std::str;
+use weather_station_backend::boundary::Measurement;
 
 // a (currently) hard coded list of all valid sensor IDs
 static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
@@ -14,6 +16,9 @@ const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
 
 #[cfg(not(debug_assertions))]
 const LOGGING_LEVEL: LevelFilter = LevelFilter::Info;
+
+type GenericError = Box<dyn std::error::Error + Send + Sync>;
+type ResponseFuture = Box<Future<Item = Response<Body>, Error = GenericError> + Send>;
 
 fn get_version_str() -> String {
     format!(
@@ -25,22 +30,26 @@ fn get_version_str() -> String {
     )
 }
 
-fn service_handler(
-    req: Request<Body>,
-) -> Box<Future<Item = Response<Body>, Error = hyper::Error> + Send> {
-    let mut response = Response::new(Body::empty());
-
-    match (req.method(), req.uri().path()) {
-        (&Method::POST, "/v1/measurement") => {
-            *response.status_mut() = StatusCode::NO_CONTENT;
-        }
-
-        _ => {
-            *response.status_mut() = StatusCode::NOT_FOUND;
-        }
-    };
-
-    Box::new(future::ok(response))
+fn service_handler(req: Request<Body>) -> ResponseFuture {
+    Box::new(
+        req.into_body()
+            .concat2()
+            .from_err()
+            .and_then(|entire_body| {
+                let parsed_json = serde_json::from_slice::<Measurement>(&entire_body).unwrap();
+                warn!(
+                    "sensor: {}, temp.: {}, hum.: {}, press.: {}",
+                    parsed_json.sensor,
+                    parsed_json.temperature,
+                    parsed_json.humidity,
+                    parsed_json.pressure
+                );
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .body(Body::empty())?;
+                Ok(response)
+            }),
+    )
 }
 
 fn main() {
