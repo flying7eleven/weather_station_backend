@@ -38,7 +38,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
             .and_then(|entire_body| {
                 let parsed_json = serde_json::from_slice::<Measurement>(&entire_body).unwrap();
                 warn!(
-                    "sensor: {}, temp.: {}, hum.: {}, press.: {}",
+                    "sensor: {}, temp.: {:02.2}, hum.: {:02.2}, press.: {:04.2}",
                     parsed_json.sensor,
                     parsed_json.temperature,
                     parsed_json.humidity,
