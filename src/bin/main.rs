@@ -45,7 +45,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     parsed_json.pressure
                 );
                 let response = Response::builder()
-                    .status(StatusCode::OK)
+                    .status(StatusCode::NO_CONTENT)
                     .body(Body::empty())?;
                 Ok(response)
             }),
