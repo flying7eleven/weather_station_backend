@@ -6,4 +6,5 @@ RUN cd /tmp/code/; \
     cp target/release/weather_station_backend /usr/bin/weather_station_backend; \
     cd /; \
     rm -rf /tmp/code/
+EXPOSE 8000
 CMD ["/usr/bin/weather_station_backend"]
