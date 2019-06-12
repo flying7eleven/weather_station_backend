@@ -1,10 +1,9 @@
+use chrono::Local;
 use futures::stream::Stream;
 use futures::Future;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
-use log::{error, info, warn};
-use simplelog::{CombinedLogger, Config, LevelFilter, TermLogger, WriteLogger};
-use std::fs::File;
+use log::{error, info, warn, LevelFilter};
 use std::str;
 use weather_station_backend::boundary::Measurement;
 
@@ -54,21 +53,27 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
 
 fn main() {
     // configure the logging framework and set the corresponding log level
-    let logger_init = CombinedLogger::init(vec![
-        TermLogger::new(LOGGING_LEVEL, Config::default()).unwrap(),
-        WriteLogger::new(
-            LOGGING_LEVEL,
-            Config::default(),
-            File::create("weather_station_backend.log").unwrap(),
-        ),
-    ]);
+    let log_initialization = fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(LOGGING_LEVEL)
+        .level_for("tokio_reactor", LevelFilter::Info)
+        .level_for("tokio_threadpool", LevelFilter::Info)
+        .level_for("mio", LevelFilter::Info)
+        .chain(std::io::stdout())
+        .chain(fern::log_file("weather_station_backend.log").unwrap())
+        .apply();
 
-    // if we could not configure the logger, terminate!
-    if logger_init.is_err() {
-        panic!(
-            "Could not initialize logger. The reason was: {}",
-            logger_init.err().unwrap()
-        )
+    // ensure the logging engine works, otherwise we should rather terminate here
+    if log_initialization.is_err() {
+        panic!("Could not initialize logging. Terminating!");
     }
 
     // tell the user that we started to spin up the API
