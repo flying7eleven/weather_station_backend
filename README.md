@@ -11,8 +11,8 @@ just type the following commands:
 
 ```text
 rustup update
-rustup toolchain install nightly
-rustup default nightly
+rustup toolchain install stable
+rustup default stable
 ```
 
 After running those commands, your Rust environment is set up. Since this project is using
