@@ -1,5 +1,7 @@
 # Weather Station (Backend)
 
+[![Build Status](https://travis-ci.org/thuetz/weather_station_backend.svg?branch=master)](https://travis-ci.org/thuetz/weather_station_backend)
+
 ## Development (or just building the tool)
 
 ### Prerequisites
