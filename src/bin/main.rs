@@ -35,13 +35,20 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
             .concat2()
             .from_err()
             .and_then(|entire_body| {
-                let parsed_json = serde_json::from_slice::<Measurement>(&entire_body).unwrap();
+                let parsed_json = serde_json::from_slice::<Measurement>(&entire_body);
+                if parsed_json.is_err() {
+                    let error_response = Response::builder()
+                        .status(StatusCode::BAD_REQUEST)
+                        .body(Body::empty())?;
+                    return Ok(error_response);
+                }
+                let parsed_json_unwrapped = parsed_json.unwrap();
                 warn!(
                     "sensor: {}, temp.: {:02.2}, hum.: {:02.2}, press.: {:04.2}",
-                    parsed_json.sensor,
-                    parsed_json.temperature,
-                    parsed_json.humidity,
-                    parsed_json.pressure
+                    parsed_json_unwrapped.sensor,
+                    parsed_json_unwrapped.temperature,
+                    parsed_json_unwrapped.humidity,
+                    parsed_json_unwrapped.pressure
                 );
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
