@@ -1,0 +1,9 @@
+version: "3"
+services:
+  weather_station_backend:
+    container_name: weather_station_backend
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: weather_station_backend:latest
+
