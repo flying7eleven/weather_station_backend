@@ -43,6 +43,13 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     return Ok(error_response);
                 }
                 let parsed_json_unwrapped = parsed_json.unwrap();
+                if !VALID_SENSORS.contains(&&*parsed_json_unwrapped.sensor) {
+                    error!("Got a request from sensor '{}' which is not allowed to post data here. Ignoring request.", parsed_json_unwrapped.sensor);
+                    let error_response = Response::builder()
+                        .status(StatusCode::FORBIDDEN)
+                        .body(Body::empty())?;
+                    return Ok(error_response);
+                }
                 warn!(
                     "sensor: {}, temp.: {:02.2}, hum.: {:02.2}, press.: {:04.2}",
                     parsed_json_unwrapped.sensor,
