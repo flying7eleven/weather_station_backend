@@ -1,4 +1,5 @@
-use sql_types::Timestamp;
+use diesel::deserialize::Queryable;
+use diesel::sql_types::Timestamp;
 
 #[derive(Queryable)]
 pub struct Measurements {

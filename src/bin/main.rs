@@ -1,11 +1,16 @@
 use chrono::Local;
+use diesel::SqliteConnection;
+use dotenv::dotenv;
 use futures::stream::Stream;
 use futures::Future;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
 use log::{error, info, warn, LevelFilter};
-use std::str;
+use std::{env, str};
 use weather_station_backend::boundary::Measurement;
+
+#[macro_use]
+extern crate diesel;
 
 // a (currently) hard coded list of all valid sensor IDs
 static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
@@ -29,7 +34,17 @@ fn get_version_str() -> String {
     )
 }
 
+pub fn establish_connection() -> SqliteConnection {
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    SqliteConnection::establish(&database_url)
+        .expect(&format!("Error connecting to {}", database_url))
+}
+
 fn service_handler(req: Request<Body>) -> ResponseFuture {
+    let db_connection = establish_connection();
+
     Box::new(
         req.into_body()
             .concat2()
