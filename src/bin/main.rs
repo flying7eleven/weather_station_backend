@@ -1,4 +1,5 @@
 use chrono::Local;
+use diesel::prelude::*;
 use diesel::SqliteConnection;
 use dotenv::dotenv;
 use futures::stream::Stream;
@@ -8,9 +9,6 @@ use hyper::{Body, Request, Response, Server, StatusCode};
 use log::{error, info, warn, LevelFilter};
 use std::{env, str};
 use weather_station_backend::boundary::Measurement;
-
-#[macro_use]
-extern crate diesel;
 
 // a (currently) hard coded list of all valid sensor IDs
 static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
