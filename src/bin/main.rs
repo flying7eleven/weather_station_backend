@@ -1,14 +1,13 @@
 use chrono::Local;
-use diesel::prelude::*;
-use diesel::SqliteConnection;
-use dotenv::dotenv;
+use core::borrow::Borrow;
 use futures::stream::Stream;
 use futures::Future;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
 use log::{error, info, warn, LevelFilter};
-use std::{env, str};
+use std::str;
 use weather_station_backend::boundary::Measurement;
+use weather_station_backend::store_measurement;
 
 // a (currently) hard coded list of all valid sensor IDs
 static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
@@ -32,17 +31,7 @@ fn get_version_str() -> String {
     )
 }
 
-pub fn establish_connection() -> SqliteConnection {
-    dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    SqliteConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
-}
-
 fn service_handler(req: Request<Body>) -> ResponseFuture {
-    let db_connection = establish_connection();
-
     Box::new(
         req.into_body()
             .concat2()
@@ -70,6 +59,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     parsed_json_unwrapped.humidity,
                     parsed_json_unwrapped.pressure
                 );
+                let _measurement_entry = store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature.borrow(), parsed_json_unwrapped.humidity.borrow(), parsed_json_unwrapped.pressure.borrow());
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::empty())?;
