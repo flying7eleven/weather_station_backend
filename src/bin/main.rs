@@ -117,9 +117,17 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mockers::Scenario;
 
     #[test]
     fn posting_wrong_data_results_in_400_bad_request() {
+        let mut fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
+            .header("User-Agent", "my-awesome-agent/1.0")
+            .body(())
+            .unwrap();
+
+        //service_handler(fake_request);
+
         assert_eq!(0, 1);
     }
 
