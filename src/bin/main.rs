@@ -59,7 +59,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     parsed_json_unwrapped.humidity,
                     parsed_json_unwrapped.pressure
                 );
-                let _measurement_entry = store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature.borrow(), parsed_json_unwrapped.humidity.borrow(), parsed_json_unwrapped.pressure.borrow());
+                let _measurement_entry = store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, parsed_json_unwrapped.pressure);
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::empty())?;

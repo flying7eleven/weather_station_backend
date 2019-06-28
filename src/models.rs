@@ -16,7 +16,7 @@ pub struct Measurements {
 pub struct NewMeasurement<'a> {
     pub time: &'a NaiveDateTime,
     pub sensor: &'a str,
-    pub temperature: &'a f32,
-    pub humidity: &'a f32,
-    pub pressure: &'a f32,
+    pub temperature: f32,
+    pub humidity: f32,
+    pub pressure: f32,
 }
