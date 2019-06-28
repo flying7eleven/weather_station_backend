@@ -918,7 +918,7 @@ dependencies = [
 
 [[package]]
 name = "weather_station_backend"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "chrono 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 1.4.2 (registry+https://github.com/rust-lang/crates.io-index)",

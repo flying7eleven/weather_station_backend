@@ -22,12 +22,7 @@ fn establish_connection() -> SqliteConnection {
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
-pub fn store_measurement(
-    sensor: &str,
-    temperature: f32,
-    humidity: f32,
-    pressure: f32,
-) -> usize {
+pub fn store_measurement(sensor: &str, temperature: f32, humidity: f32, pressure: f32) -> usize {
     use schema::measurements;
 
     let db_connection = establish_connection();
