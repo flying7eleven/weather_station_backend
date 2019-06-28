@@ -34,7 +34,7 @@ pub fn store_measurement(
 
     let new_measurement = NewMeasurement {
         sensor,
-        time: &Local::now().naive_local(),
+        time: &Local::now().naive_utc(),
         temperature,
         humidity,
         pressure,
