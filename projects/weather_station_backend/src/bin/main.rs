@@ -121,23 +121,50 @@ mod tests {
 
     #[test]
     fn posting_wrong_data_results_in_400_bad_request() {
-        let mut fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
+        let fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
             .header("User-Agent", "my-awesome-agent/1.0")
-            .body(())
+            .body(Body::empty())
             .unwrap();
 
-        //service_handler(fake_request);
+        let request_response = service_handler(fake_request).wait();
 
-        assert_eq!(0, 1);
+        assert_eq!(false, request_response.is_err());
+
+        let unwrapped_response = request_response.unwrap();
+        assert_eq!(unwrapped_response.status(), StatusCode::BAD_REQUEST);
     }
 
     #[test]
     fn posting_correct_data_with_unknown_sensor_results_in_403_forbidden() {
-        assert_eq!(0, 1);
+        let valid_body = Body::from("{\"sensor\": \"UNKNOWN\", \"temperature\": 22.0, \"humidity\": 50.0, \"pressure\": 1013.2}");
+
+        let fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
+            .header("User-Agent", "my-awesome-agent/1.0")
+            .body(valid_body)
+            .unwrap();
+
+        let request_response = service_handler(fake_request).wait();
+
+        assert_eq!(false, request_response.is_err());
+
+        let unwrapped_response = request_response.unwrap();
+        assert_eq!(unwrapped_response.status(), StatusCode::FORBIDDEN);
     }
 
     #[test]
     fn posting_correct_data_with_known_sensor_results_in_204_no_content() {
-        assert_eq!(0, 1);
+        let valid_body = Body::from("{\"sensor\": \"DEADBEEF\", \"temperature\": 22.0, \"humidity\": 50.0, \"pressure\": 1013.2}");
+
+        let fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
+            .header("User-Agent", "my-awesome-agent/1.0")
+            .body(valid_body)
+            .unwrap();
+
+        let request_response = service_handler(fake_request).wait();
+
+        assert_eq!(false, request_response.is_err());
+
+        let unwrapped_response = request_response.unwrap();
+        assert_eq!(unwrapped_response.status(), StatusCode::NO_CONTENT);
     }
 }
