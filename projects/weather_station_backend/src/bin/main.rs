@@ -7,7 +7,7 @@ use hyper::{Body, Request, Response, Server, StatusCode};
 use log::{error, info, warn, LevelFilter};
 use std::str;
 use weather_station_backend::boundary::Measurement;
-use weather_station_backend::store_measurement;
+use weather_station_backend::StorageBackend;
 
 // a (currently) hard coded list of all valid sensor IDs
 static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
@@ -59,7 +59,8 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     parsed_json_unwrapped.humidity,
                     parsed_json_unwrapped.pressure
                 );
-                let _measurement_entry = store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, parsed_json_unwrapped.pressure);
+                let storage_backend = StorageBackend::default();
+                let _measurement_entry = storage_backend.store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, parsed_json_unwrapped.pressure);
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::empty())?;
@@ -117,7 +118,6 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mockers::Scenario;
 
     #[test]
     fn posting_wrong_data_results_in_400_bad_request() {
