@@ -3,6 +3,10 @@
 [[package]]
 name = "afluencia"
 version = "0.0.1"
+dependencies = [
+ "hyper 0.12.31 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "aho-corasick"

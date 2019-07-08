@@ -7,3 +7,7 @@ edition = "2018"
 [lib]
 name = "afluencia"
 path = "src/lib.rs"
+
+[dependencies]
+hyper = "0.12.29"
+log = "0.4.6"
