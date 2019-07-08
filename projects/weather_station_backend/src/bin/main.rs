@@ -86,6 +86,7 @@ fn main() {
         .level_for("tokio_threadpool", LevelFilter::Info)
         .level_for("hyper", LevelFilter::Info)
         .level_for("mio", LevelFilter::Info)
+        .level_for("want", LevelFilter::Info)
         .chain(std::io::stdout())
         .chain(fern::log_file("weather_station_backend.log").unwrap())
         .apply();
