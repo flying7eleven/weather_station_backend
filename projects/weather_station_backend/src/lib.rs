@@ -2,6 +2,7 @@
 extern crate diesel;
 
 use crate::models::NewMeasurement;
+use afluencia::AfluenciaClient;
 use chrono::Local;
 use diesel::prelude::*;
 use diesel::query_dsl::RunQueryDsl;
@@ -39,6 +40,9 @@ impl StorageBackend {
         pressure: f32,
     ) -> usize {
         use schema::measurements;
+
+        let influx_client = AfluenciaClient::default();
+        influx_client.write_measurement();
 
         let new_measurement = NewMeasurement {
             sensor,
