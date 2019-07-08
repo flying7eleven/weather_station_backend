@@ -9,6 +9,7 @@ name = "weather_station_backend"
 path = "src/bin/main.rs"
 
 [dependencies]
+afluencia = { path = "../afluencia" }
 log = "0.4.6"
 hyper = "0.12.29"
 fern = "0.5.8"

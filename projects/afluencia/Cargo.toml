@@ -1,0 +1,9 @@
+[package]
+name = "afluencia"
+version = "0.0.1"
+authors = ["Tim Hütz <tim@huetz.biz>"]
+edition = "2018"
+
+[lib]
+name = "afluencia"
+path = "src/lib.rs"

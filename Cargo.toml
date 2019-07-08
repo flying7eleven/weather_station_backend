@@ -1,4 +1,5 @@
 [workspace]
 members = [
+	"projects/afluencia",
 	"projects/weather_station_backend",
 ]
