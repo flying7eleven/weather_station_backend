@@ -4,6 +4,7 @@
 name = "afluencia"
 version = "0.0.1"
 dependencies = [
+ "dotenv 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.12.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

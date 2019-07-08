@@ -1,6 +1,8 @@
-use hyper::rt::{self, Future};
+use dotenv::dotenv;
+use hyper::rt::Future;
 use hyper::{Body, Client, Method, Request, StatusCode, Uri};
 use log::{debug, error};
+use std::env;
 
 pub struct AfluenciaClient {
     host: String,
@@ -75,10 +77,15 @@ impl AfluenciaClient {
 
 impl Default for AfluenciaClient {
     fn default() -> Self {
+        dotenv().ok();
+
         AfluenciaClient {
-            host: String::from("localhost"),
-            database: String::from("default"),
-            port: 8086,
+            host: env::var("AFLUENCIA_HOST").expect("AFLUENCIA_HOST must be set"),
+            database: env::var("AFLUENCIA_DB").expect("AFLUENCIA_DB must be set"),
+            port: env::var("AFLUENCIA_PORT")
+                .expect("AFLUENCIA_PORT must be set")
+                .parse()
+                .unwrap(),
             user: None,
             password: None,
         }
