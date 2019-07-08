@@ -19,7 +19,7 @@ const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
 const LOGGING_LEVEL: LevelFilter = LevelFilter::Info;
 
 type GenericError = Box<dyn std::error::Error + Send + Sync>;
-type ResponseFuture = Box<Future<Item = Response<Body>, Error = GenericError> + Send>;
+type ResponseFuture = Box<dyn Future<Item = Response<Body>, Error = GenericError> + Send>;
 
 fn get_version_str() -> String {
     format!(
