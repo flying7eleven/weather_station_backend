@@ -1,6 +1,6 @@
 use dotenv::dotenv;
-use hyper::rt::Future;
-use hyper::{Body, Client, Method, Request, StatusCode, Uri};
+use futures::{self, Future, Stream};
+use hyper::{header::HeaderValue, header::CONTENT_TYPE, rt, Body, Client, Method, Request, Uri};
 use log::{debug, error};
 use std::env;
 
@@ -12,12 +12,17 @@ pub struct AfluenciaClient {
     password: Option<String>,
 }
 
+pub struct AfluenciaResponse {
+    pub status: u16,
+    pub body: String,
+}
+
 impl AfluenciaClient {
     pub fn new(hostname: &str, port: u32, database: &str) -> AfluenciaClient {
         AfluenciaClient {
             host: String::from(hostname),
             database: String::from(database),
-            port: port,
+            port,
             user: None,
             password: None,
         }
@@ -35,26 +40,41 @@ impl AfluenciaClient {
 
     pub fn write_measurement(&self) {
         let target_url: Uri = self.get_write_base_url().parse().unwrap();
-        let mut client = Client::new();
+        let client = Client::new();
 
-        //
+        // prepare the actual request to the influx server
         let mut data_request = Request::new(Body::from("afluencia,mytag=1 myfield=90 1463683075"));
         *data_request.method_mut() = Method::POST;
         *data_request.uri_mut() = target_url.clone();
+        data_request.headers_mut().insert(
+            CONTENT_TYPE,
+            HeaderValue::from_static("application/x-www-form-urlencoded"),
+        );
 
         //
-        client.request(data_request).and_then(|response| {
-            if response.status() != StatusCode::NO_CONTENT {
-                error!(
-                    "Received an invalid response from the InfluxDB backend: {}",
-                    response.status()
-                );
-            } else {
-                debug!("Wrote a new measurement into the attached InfluxDB instances.");
-            }
+        rt::spawn(
+            client
+                .request(data_request)
+                .and_then(|resp| {
+                    let status = resp.status().as_u16();
 
-            Ok(())
-        });
+                    resp.into_body()
+                        .concat2()
+                        .and_then(move |body| Ok(String::from_utf8(body.to_vec()).unwrap()))
+                        .and_then(move |body| Ok(AfluenciaResponse { status, body }))
+                })
+                .map_err(|_| error!("Error during processing the InfluxDB request."))
+                .then(|response| match response {
+                    Ok(ref resp) if resp.status == 204 => {
+                        debug!("Successfully wrote entry into InfluxDB.");
+                        Ok(())
+                    }
+                    _ => {
+                        error!("Failed while writing into InfluxDB.");
+                        Err(())
+                    }
+                }),
+        );
     }
 
     fn get_write_base_url(&self) -> String {
