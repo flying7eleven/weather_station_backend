@@ -50,7 +50,7 @@ impl StorageBackend {
         influx_measurement.add_field("temperature", Value::Float(f64::from(temperature)));
         influx_measurement.add_field("humidity", Value::Float(f64::from(humidity)));
         influx_measurement.add_field("pressure", Value::Float(f64::from(pressure)));
-        influx_measurement.add_timestamp(measurement_time.timestamp_millis());
+        influx_measurement.add_timestamp(measurement_time.timestamp_nanos());
 
         // define the required datas tructure for the database
         let db_measurement = NewMeasurement {
