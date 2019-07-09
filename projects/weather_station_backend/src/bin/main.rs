@@ -62,7 +62,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     parsed_json_unwrapped.pressure
                 );
                 let storage_backend = StorageBackend::default();
-                let _measurement_entry = storage_backend.store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, parsed_json_unwrapped.pressure);
+                storage_backend.store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, parsed_json_unwrapped.pressure);
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::empty())?;
@@ -108,9 +108,10 @@ fn main() {
     );
 
     // check if the database part should be enabled or not
-    let database_enabled =
-        bool::from_str(&env::var("WEATHER_STATION_USE_DB").unwrap_or(String::from("true")))
-            .unwrap_or(false);
+    let database_enabled = bool::from_str(
+        &env::var("WEATHER_STATION_USE_DB").unwrap_or_else(|_| String::from("true")),
+    )
+    .unwrap_or(false);
     if !database_enabled {
         info!("Classical rational database support is disabled by configuration.");
     }

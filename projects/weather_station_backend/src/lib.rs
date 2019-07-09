@@ -4,7 +4,6 @@ extern crate diesel;
 use crate::models::NewMeasurement;
 use afluencia::{AfluenciaClient, DataPoint, Value};
 use chrono::Local;
-use core::borrow::Borrow;
 use diesel::prelude::*;
 use diesel::query_dsl::RunQueryDsl;
 use log::debug;
@@ -21,9 +20,10 @@ pub struct StorageBackend {
 
 impl Default for StorageBackend {
     fn default() -> Self {
-        let rational_db_enabled =
-            bool::from_str(&env::var("WEATHER_STATION_USE_DB").unwrap_or(String::from("true")))
-                .unwrap_or(false);
+        let rational_db_enabled = bool::from_str(
+            &env::var("WEATHER_STATION_USE_DB").unwrap_or_else(|_| String::from("true")),
+        )
+        .unwrap_or(true);
 
         if rational_db_enabled {
             let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -35,7 +35,7 @@ impl Default for StorageBackend {
             };
         }
 
-        return StorageBackend { connection: None };
+        StorageBackend { connection: None }
     }
 }
 
