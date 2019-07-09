@@ -2,7 +2,60 @@ use dotenv::dotenv;
 use futures::{self, Future, Stream};
 use hyper::{header::HeaderValue, header::CONTENT_TYPE, rt, Body, Client, Method, Request, Uri};
 use log::{debug, error};
+use std::collections::HashMap;
 use std::env;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// this part is used from https://github.com/driftluo/InfluxDBClient-rs/blob/master/src/keys.rs by
+// the github user driftluo
+
+/// Influxdb value, Please look at [this address](https://docs.influxdata.com/influxdb/v1.3/write_protocols/line_protocol_reference/)
+pub enum Value {
+    String(String),
+    Integer(i64),
+    Float(f64),
+    Boolean(bool),
+}
+
+pub struct DataPoint {
+    pub measurement: String,
+    pub tags: HashMap<String, Value>,
+    pub fields: HashMap<String, Value>,
+    pub timestamp: Option<i64>,
+}
+
+impl DataPoint {
+    pub fn new(measurement: &str) -> DataPoint {
+        DataPoint {
+            measurement: String::from(measurement),
+            tags: HashMap::new(),
+            fields: HashMap::new(),
+            timestamp: None,
+        }
+    }
+
+    pub fn add_tag<T: ToString>(&mut self, tag: T, value: Value) -> &mut Self {
+        self.tags.insert(tag.to_string(), value);
+        self
+    }
+
+    pub fn add_field<T: ToString>(&mut self, field: T, value: Value) -> &mut Self {
+        self.fields.insert(field.to_string(), value);
+        self
+    }
+
+    pub fn add_timestamp(&mut self, timestamp: i64) -> &mut Self {
+        self.timestamp = Some(timestamp);
+        self
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct AfluenciaClient {
     host: String,
