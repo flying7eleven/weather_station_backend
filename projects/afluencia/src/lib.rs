@@ -28,12 +28,12 @@ impl AfluenciaClient {
         }
     }
 
-    pub fn user<'a>(&'a mut self, user: String) -> &'a mut AfluenciaClient {
+    pub fn user(&mut self, user: String) -> &mut AfluenciaClient {
         self.user = Some(user);
         self
     }
 
-    pub fn password<'a>(&'a mut self, password: String) -> &'a mut AfluenciaClient {
+    pub fn password(&mut self, password: String) -> &mut AfluenciaClient {
         self.password = Some(password);
         self
     }
