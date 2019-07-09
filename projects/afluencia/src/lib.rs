@@ -91,7 +91,7 @@ impl AfluenciaClient {
         self
     }
 
-    pub fn write_measurement(&self, measurement: DataPoint) {
+    pub fn write_measurement(&self, _measurement: DataPoint) {
         let target_url: Uri = self.get_write_base_url().parse().unwrap();
         let client = Client::new();
 
