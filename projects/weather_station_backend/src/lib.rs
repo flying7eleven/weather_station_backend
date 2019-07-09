@@ -2,7 +2,7 @@
 extern crate diesel;
 
 use crate::models::NewMeasurement;
-use afluencia::AfluenciaClient;
+use afluencia::{AfluenciaClient, DataPoint, Value};
 use chrono::Local;
 use diesel::prelude::*;
 use diesel::query_dsl::RunQueryDsl;
@@ -41,19 +41,33 @@ impl StorageBackend {
     ) -> usize {
         use schema::measurements;
 
-        let influx_client = AfluenciaClient::default();
-        influx_client.write_measurement();
+        // get the current time as an over-all time measurement
+        let measurement_time = Local::now().naive_utc();
 
-        let new_measurement = NewMeasurement {
+        // define the required data structure for the InfluxDB
+        let mut influx_measurement = DataPoint::new("environment");
+        influx_measurement.add_tag("sensor", Value::String(String::from(sensor)));
+        influx_measurement.add_field("temperature", Value::Float(temperature as f64));
+        influx_measurement.add_field("humidity", Value::Float(humidity as f64));
+        influx_measurement.add_field("pressure", Value::Float(pressure as f64));
+        influx_measurement.add_timestamp(measurement_time.timestamp_millis());
+
+        // define the required datas tructure for the database
+        let db_measurement = NewMeasurement {
             sensor,
-            time: &Local::now().naive_utc(),
+            time: &measurement_time,
             temperature,
             humidity,
             pressure,
         };
 
+        // write into the InfluxDB
+        let influx_client = AfluenciaClient::default();
+        influx_client.write_measurement(influx_measurement);
+
+        // write into the database
         diesel::insert_into(measurements::table)
-            .values(&new_measurement)
+            .values(&db_measurement)
             .execute(&self.connection)
             .expect("Error saving new measurement!")
     }
