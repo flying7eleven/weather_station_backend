@@ -47,9 +47,9 @@ impl StorageBackend {
         // define the required data structure for the InfluxDB
         let mut influx_measurement = DataPoint::new("environment");
         influx_measurement.add_tag("sensor", Value::String(String::from(sensor)));
-        influx_measurement.add_field("temperature", Value::Float(temperature as f64));
-        influx_measurement.add_field("humidity", Value::Float(humidity as f64));
-        influx_measurement.add_field("pressure", Value::Float(pressure as f64));
+        influx_measurement.add_field("temperature", Value::Float(f64::from(temperature)));
+        influx_measurement.add_field("humidity", Value::Float(f64::from(humidity)));
+        influx_measurement.add_field("pressure", Value::Float(f64::from(pressure)));
         influx_measurement.add_timestamp(measurement_time.timestamp_millis());
 
         // define the required datas tructure for the database
