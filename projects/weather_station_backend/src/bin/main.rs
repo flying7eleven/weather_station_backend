@@ -1,11 +1,13 @@
 use chrono::Local;
 use core::borrow::Borrow;
+use dotenv::dotenv;
 use futures::stream::Stream;
 use futures::Future;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
 use log::{error, info, warn, LevelFilter};
-use std::str;
+use std::str::FromStr;
+use std::{env, str};
 use weather_station_backend::boundary::Measurement;
 use weather_station_backend::StorageBackend;
 
@@ -70,6 +72,9 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
 }
 
 fn main() {
+    // load the .env file for the configuration options
+    dotenv().ok();
+
     // configure the logging framework and set the corresponding log level
     let log_initialization = fern::Dispatch::new()
         .format(|out, message, record| {
@@ -101,6 +106,14 @@ fn main() {
         "Starting up the REST API for the Weather Station in version {}...",
         get_version_str()
     );
+
+    // check if the database part should be enabled or not
+    let database_enabled =
+        bool::from_str(&env::var("WEATHER_STATION_USE_DB").unwrap_or(String::from("true")))
+            .unwrap_or(false);
+    if !database_enabled {
+        info!("Classical rational database support is disabled by configuration.");
+    }
 
     // print all valid sensors
     for sensor_id in VALID_SENSORS.iter() {

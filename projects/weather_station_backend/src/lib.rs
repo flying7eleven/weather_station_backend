@@ -4,41 +4,43 @@ extern crate diesel;
 use crate::models::NewMeasurement;
 use afluencia::{AfluenciaClient, DataPoint, Value};
 use chrono::Local;
+use core::borrow::Borrow;
 use diesel::prelude::*;
 use diesel::query_dsl::RunQueryDsl;
-use dotenv::dotenv;
+use log::debug;
 use std::env;
+use std::str::FromStr;
 
 pub mod boundary;
 pub mod models;
 pub mod schema;
 
 pub struct StorageBackend {
-    connection: MysqlConnection,
+    connection: Option<MysqlConnection>,
 }
 
 impl Default for StorageBackend {
     fn default() -> Self {
-        dotenv().ok();
+        let rational_db_enabled =
+            bool::from_str(&env::var("WEATHER_STATION_USE_DB").unwrap_or(String::from("true")))
+                .unwrap_or(false);
 
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let tmp_connection = MysqlConnection::establish(&database_url)
-            .unwrap_or_else(|_| panic!("Error connecting to {}", database_url));
+        if rational_db_enabled {
+            let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+            let tmp_connection = MysqlConnection::establish(&database_url)
+                .unwrap_or_else(|_| panic!("Error connecting to {}", database_url));
 
-        StorageBackend {
-            connection: tmp_connection,
+            return StorageBackend {
+                connection: Some(tmp_connection),
+            };
         }
+
+        return StorageBackend { connection: None };
     }
 }
 
 impl StorageBackend {
-    pub fn store_measurement(
-        &self,
-        sensor: &str,
-        temperature: f32,
-        humidity: f32,
-        pressure: f32,
-    ) -> usize {
+    pub fn store_measurement(&self, sensor: &str, temperature: f32, humidity: f32, pressure: f32) {
         use schema::measurements;
 
         // get the current time as an over-all time measurement
@@ -52,23 +54,28 @@ impl StorageBackend {
         influx_measurement.add_field("pressure", Value::Float(f64::from(pressure)));
         influx_measurement.add_timestamp(measurement_time.timestamp_nanos());
 
-        // define the required datas tructure for the database
-        let db_measurement = NewMeasurement {
-            sensor,
-            time: &measurement_time,
-            temperature,
-            humidity,
-            pressure,
-        };
-
         // write into the InfluxDB
         let influx_client = AfluenciaClient::default();
         influx_client.write_measurement(influx_measurement);
 
-        // write into the database
-        diesel::insert_into(measurements::table)
-            .values(&db_measurement)
-            .execute(&self.connection)
-            .expect("Error saving new measurement!")
+        // just execute the rest if the rational database support was enabled
+        match &self.connection {
+            Some(connection) => {
+                let db_measurement = NewMeasurement {
+                    sensor,
+                    time: &measurement_time,
+                    temperature,
+                    humidity,
+                    pressure,
+                };
+
+                // write into the database
+                diesel::insert_into(measurements::table)
+                    .values(&db_measurement)
+                    .execute(connection)
+                    .expect("Error saving new measurement!");
+            }
+            None => debug!("Not writing to the local database since it was disabled."),
+        }
     }
 }
