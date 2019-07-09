@@ -47,7 +47,7 @@ impl StorageBackend {
         let measurement_time = Local::now().naive_utc();
 
         // define the required data structure for the InfluxDB
-        let mut influx_measurement = DataPoint::new("environment");
+        let mut influx_measurement = DataPoint::new("weather_measurement");
         influx_measurement.add_tag("sensor", Value::String(String::from(sensor)));
         influx_measurement.add_field("temperature", Value::Float(f64::from(temperature)));
         influx_measurement.add_field("humidity", Value::Float(f64::from(humidity)));
