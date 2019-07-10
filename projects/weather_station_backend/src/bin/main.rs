@@ -5,10 +5,8 @@ use futures::Future;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
 use log::{error, info, warn, LevelFilter};
-use std::str::FromStr;
-use std::{env, str};
 use weather_station_backend::boundary::Measurement;
-use weather_station_backend::StorageBackend;
+use weather_station_backend::{StorageBackend, WeatherStationConfiguration};
 
 // a (currently) hard coded list of all valid sensor IDs
 static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
@@ -71,6 +69,9 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
 }
 
 fn main() {
+    // load the current configuration into memory
+    let configuration: WeatherStationConfiguration = confy::load("weather_station_backend").unwrap();
+
     // configure the logging framework and set the corresponding log level
     let log_initialization = fern::Dispatch::new()
         .format(|out, message, record| {
@@ -104,11 +105,7 @@ fn main() {
     );
 
     // check if the database part should be enabled or not
-    let database_enabled = bool::from_str(
-        &env::var("WEATHER_STATION_USE_DB").unwrap_or_else(|_| String::from("true")),
-    )
-    .unwrap_or(false);
-    if !database_enabled {
+    if !configuration.rational_db_enabled {
         info!("Classical rational database support is disabled by configuration.");
     }
 

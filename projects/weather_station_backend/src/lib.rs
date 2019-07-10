@@ -9,6 +9,7 @@ use diesel::query_dsl::RunQueryDsl;
 use log::debug;
 use std::env;
 use std::str::FromStr;
+use serde::{Serialize, Deserialize};
 
 pub mod boundary;
 pub mod models;
@@ -77,6 +78,34 @@ impl StorageBackend {
                     .expect("Error saving new measurement!");
             }
             None => debug!("Not writing to the local database since it was disabled."),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WeatherStationConfiguration {
+    pub rational_db_connection_url: String,
+    pub rational_db_enabled: bool,
+    pub rational_db_database: String,
+    pub influxdb_host: String,
+    pub influxdb_port: u32,
+    pub influxdb_database: String,
+    pub influxdb_user: Option<String>,
+    pub influxdb_password: Option<String>,
+
+}
+
+impl Default for WeatherStationConfiguration {
+    fn default() -> Self {
+        WeatherStationConfiguration {
+            rational_db_connection_url: "".to_string(),
+            rational_db_enabled: false,
+            rational_db_database: "".to_string(),
+            influxdb_host: "".to_string(),
+            influxdb_port: 8086,
+            influxdb_database: "".to_string(),
+            influxdb_user: None,
+            influxdb_password: None,
         }
     }
 }
