@@ -7,13 +7,14 @@ use chrono::Local;
 use diesel::prelude::*;
 use diesel::query_dsl::RunQueryDsl;
 use log::debug;
+use serde::{Deserialize, Serialize};
 use std::env;
 use std::str::FromStr;
-use serde::{Serialize, Deserialize};
 
 pub mod boundary;
 pub mod models;
 pub mod schema;
+pub mod server;
 
 pub struct StorageBackend {
     connection: Option<MysqlConnection>,
@@ -92,7 +93,6 @@ pub struct WeatherStationConfiguration {
     pub influxdb_database: String,
     pub influxdb_user: Option<String>,
     pub influxdb_password: Option<String>,
-
 }
 
 impl Default for WeatherStationConfiguration {

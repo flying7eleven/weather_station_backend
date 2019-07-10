@@ -1,24 +1,13 @@
 use chrono::Local;
-use core::borrow::Borrow;
-use futures::stream::Stream;
-use futures::Future;
-use hyper::service::service_fn;
-use hyper::{Body, Request, Response, Server, StatusCode};
-use log::{error, info, warn, LevelFilter};
-use weather_station_backend::boundary::Measurement;
-use weather_station_backend::{StorageBackend, WeatherStationConfiguration};
-
-// a (currently) hard coded list of all valid sensor IDs
-static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
+use log::{info, LevelFilter};
+use weather_station_backend::server::RestApiServer;
+use weather_station_backend::WeatherStationConfiguration;
 
 #[cfg(debug_assertions)]
 const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
 
 #[cfg(not(debug_assertions))]
 const LOGGING_LEVEL: LevelFilter = LevelFilter::Info;
-
-type GenericError = Box<dyn std::error::Error + Send + Sync>;
-type ResponseFuture = Box<dyn Future<Item = Response<Body>, Error = GenericError> + Send>;
 
 fn get_version_str() -> String {
     format!(
@@ -30,47 +19,10 @@ fn get_version_str() -> String {
     )
 }
 
-fn service_handler(req: Request<Body>) -> ResponseFuture {
-    Box::new(
-        req.into_body()
-            .concat2()
-            .from_err()
-            .and_then(|entire_body| {
-                let parsed_json = serde_json::from_slice::<Measurement>(&entire_body);
-                if parsed_json.is_err() {
-                    let error_response = Response::builder()
-                        .status(StatusCode::BAD_REQUEST)
-                        .body(Body::empty())?;
-                    return Ok(error_response);
-                }
-                let parsed_json_unwrapped = parsed_json.unwrap();
-                if !VALID_SENSORS.contains(&&*parsed_json_unwrapped.sensor) {
-                    error!("Got a request from sensor '{}' which is not allowed to post data here. Ignoring request.", parsed_json_unwrapped.sensor);
-                    let error_response = Response::builder()
-                        .status(StatusCode::FORBIDDEN)
-                        .body(Body::empty())?;
-                    return Ok(error_response);
-                }
-                warn!(
-                    "sensor: {}, temp.: {:02.2}, hum.: {:02.2}, press.: {:04.2}",
-                    parsed_json_unwrapped.sensor,
-                    parsed_json_unwrapped.temperature,
-                    parsed_json_unwrapped.humidity,
-                    parsed_json_unwrapped.pressure
-                );
-                let storage_backend = StorageBackend::default();
-                storage_backend.store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, parsed_json_unwrapped.pressure);
-                let response = Response::builder()
-                    .status(StatusCode::NO_CONTENT)
-                    .body(Body::empty())?;
-                Ok(response)
-            }),
-    )
-}
-
 fn main() {
     // load the current configuration into memory
-    let configuration: WeatherStationConfiguration = confy::load("weather_station_backend").unwrap();
+    let configuration: WeatherStationConfiguration =
+        confy::load("weather_station_backend").unwrap();
 
     // configure the logging framework and set the corresponding log level
     let log_initialization = fern::Dispatch::new()
@@ -109,71 +61,7 @@ fn main() {
         info!("Classical rational database support is disabled by configuration.");
     }
 
-    // print all valid sensors
-    for sensor_id in VALID_SENSORS.iter() {
-        info!("{} is a valid sensor identifier", sensor_id);
-    }
-
     // configure the server and start it up
     let server_address = ([0, 0, 0, 0], 8000).into();
-    let new_service = || service_fn(service_handler);
-    let server = Server::bind(&server_address)
-        .serve(new_service)
-        .map_err(|e| error!("server error: {}", e));
-    hyper::rt::run(server);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn posting_wrong_data_results_in_400_bad_request() {
-        let fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
-            .header("User-Agent", "my-awesome-agent/1.0")
-            .body(Body::empty())
-            .unwrap();
-
-        let request_response = service_handler(fake_request).wait();
-
-        assert_eq!(false, request_response.is_err());
-
-        let unwrapped_response = request_response.unwrap();
-        assert_eq!(unwrapped_response.status(), StatusCode::BAD_REQUEST);
-    }
-
-    #[test]
-    fn posting_correct_data_with_unknown_sensor_results_in_403_forbidden() {
-        let valid_body = Body::from("{\"sensor\": \"UNKNOWN\", \"temperature\": 22.0, \"humidity\": 50.0, \"pressure\": 1013.2}");
-
-        let fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
-            .header("User-Agent", "my-awesome-agent/1.0")
-            .body(valid_body)
-            .unwrap();
-
-        let request_response = service_handler(fake_request).wait();
-
-        assert_eq!(false, request_response.is_err());
-
-        let unwrapped_response = request_response.unwrap();
-        assert_eq!(unwrapped_response.status(), StatusCode::FORBIDDEN);
-    }
-
-    #[test]
-    #[should_panic] // TODO: this should not be the solution, just a temporary fix
-    fn posting_correct_data_with_known_sensor_results_in_204_no_content() {
-        let valid_body = Body::from("{\"sensor\": \"DEADBEEF\", \"temperature\": 22.0, \"humidity\": 50.0, \"pressure\": 1013.2}");
-
-        let fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
-            .header("User-Agent", "my-awesome-agent/1.0")
-            .body(valid_body)
-            .unwrap();
-
-        let request_response = service_handler(fake_request).wait();
-
-        assert_eq!(false, request_response.is_err());
-
-        let unwrapped_response = request_response.unwrap();
-        assert_eq!(unwrapped_response.status(), StatusCode::NO_CONTENT);
-    }
+    let server = RestApiServer::new(configuration, server_address);
 }
