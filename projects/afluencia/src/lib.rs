@@ -1,4 +1,3 @@
-use dotenv::dotenv;
 use futures::{self, Future, Stream};
 use hyper::{header::HeaderValue, header::CONTENT_TYPE, rt, Body, Client, Method, Request, Uri};
 use log::{debug, error};
@@ -232,8 +231,6 @@ impl AfluenciaClient {
 
 impl Default for AfluenciaClient {
     fn default() -> Self {
-        dotenv().ok();
-
         let user = if env::var("AFLUENCIA_USER").is_ok() {
             Some(env::var("AFLUENCIA_USER").unwrap())
         } else {

@@ -1,6 +1,5 @@
 use chrono::Local;
 use core::borrow::Borrow;
-use dotenv::dotenv;
 use futures::stream::Stream;
 use futures::Future;
 use hyper::service::service_fn;
@@ -72,9 +71,6 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
 }
 
 fn main() {
-    // load the .env file for the configuration options
-    dotenv().ok();
-
     // configure the logging framework and set the corresponding log level
     let log_initialization = fern::Dispatch::new()
         .format(|out, message, record| {
