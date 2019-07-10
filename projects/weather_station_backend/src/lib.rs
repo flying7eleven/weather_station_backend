@@ -26,7 +26,8 @@ impl Default for StorageBackend {
         .unwrap_or(true);
 
         if rational_db_enabled {
-            let database_url = env::var("WEATHER_DATABASE_URL").expect("WEATHER_DATABASE_URL must be set");
+            let database_url =
+                env::var("WEATHER_DATABASE_URL").expect("WEATHER_DATABASE_URL must be set");
             let tmp_connection = MysqlConnection::establish(&database_url)
                 .unwrap_or_else(|_| panic!("Error connecting to {}", database_url));
 

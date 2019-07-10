@@ -234,6 +234,18 @@ impl Default for AfluenciaClient {
     fn default() -> Self {
         dotenv().ok();
 
+        let user = if env::var("AFLUENCIA_USER").is_ok() {
+            Some(env::var("AFLUENCIA_USER").unwrap())
+        } else {
+            None
+        };
+
+        let password = if env::var("AFLUENCIA_PASSWORD").is_ok() {
+            Some(env::var("AFLUENCIA_PASSWORD").unwrap())
+        } else {
+            None
+        };
+
         AfluenciaClient {
             host: env::var("AFLUENCIA_HOST").expect("AFLUENCIA_HOST must be set"),
             database: env::var("AFLUENCIA_DB").expect("AFLUENCIA_DB must be set"),
@@ -241,8 +253,8 @@ impl Default for AfluenciaClient {
                 .expect("AFLUENCIA_PORT must be set")
                 .parse()
                 .unwrap(),
-            user: None,
-            password: None,
+            user,
+            password,
         }
     }
 }
@@ -252,7 +264,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn generate_valid_write_base_url_with_default_initialization() {
+    fn generate_valid_write_base_url_with_default_initialization_and_no_auth_env_vars_set() {
         env::set_var("AFLUENCIA_HOST", "mockedhost");
         env::set_var("AFLUENCIA_DB", "mockeddb");
         env::set_var("AFLUENCIA_PORT", "5678");
@@ -261,6 +273,22 @@ mod tests {
 
         assert_eq!(
             "http://mockedhost:5678/write?db=mockeddb",
+            client.get_write_base_url()
+        );
+    }
+
+    #[test]
+    fn generate_valid_write_base_url_with_default_initialization_and_auth_env_vars_set() {
+        env::set_var("AFLUENCIA_HOST", "mockedhost");
+        env::set_var("AFLUENCIA_DB", "mockeddb");
+        env::set_var("AFLUENCIA_PORT", "5678");
+        env::set_var("AFLUENCIA_USER", "username");
+        env::set_var("AFLUENCIA_PASSWORD", "password");
+
+        let client = AfluenciaClient::default();
+
+        assert_eq!(
+            "http://mockedhost:5678/write?db=mockeddb&u=username&p=password",
             client.get_write_base_url()
         );
     }
