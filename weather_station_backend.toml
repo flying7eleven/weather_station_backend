@@ -1,0 +1,12 @@
+[general]
+
+[rational_db]
+enabled = false
+connection_url = ""
+
+[influxdb]
+host = "localhost"
+port = 8086
+database = "tmpdb"
+user = "username"
+password = "password"
