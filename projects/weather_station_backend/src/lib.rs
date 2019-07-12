@@ -83,7 +83,7 @@ impl StorageBackend {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WeatherStationConfiguration {
     pub rational_db_connection_url: String,
     pub rational_db_enabled: bool,

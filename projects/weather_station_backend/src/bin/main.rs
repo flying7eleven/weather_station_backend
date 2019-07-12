@@ -1,6 +1,8 @@
 use chrono::Local;
-use log::{info, LevelFilter};
-use weather_station_backend::server::RestApiServer;
+use futures::future::Future;
+use hyper::Server;
+use log::{error, info, LevelFilter};
+use weather_station_backend::server::RestService;
 use weather_station_backend::WeatherStationConfiguration;
 
 #[cfg(debug_assertions)]
@@ -63,5 +65,8 @@ fn main() {
 
     // configure the server and start it up
     let server_address = ([0, 0, 0, 0], 8000).into();
-    let server = RestApiServer::new(configuration, server_address);
+    let server = Server::bind(&server_address)
+        .serve(move || RestService::new(&configuration))
+        .map_err(|e| error!("server error: {}", e));
+    hyper::rt::run(server);
 }
