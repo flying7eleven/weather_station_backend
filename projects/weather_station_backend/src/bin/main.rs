@@ -5,14 +5,29 @@ use futures::stream::Stream;
 use futures::Future;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
+use lazy_static::lazy_static;
 use log::{error, info, warn, LevelFilter};
+use std::collections::LinkedList;
+use std::env;
 use std::str::FromStr;
-use std::{env, str};
 use weather_station_backend::boundary::Measurement;
 use weather_station_backend::StorageBackend;
 
-// a (currently) hard coded list of all valid sensor IDs
-static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
+lazy_static! {
+    static ref VALID_SENSORS: LinkedList<String> = {
+        let mut list_of_sensors: LinkedList<String> = LinkedList::new();
+        if env::var("WEATHER_STATION_SENSORS").is_ok() {
+            for id in env::var("WEATHER_STATION_SENSORS").unwrap().split(",") {
+                list_of_sensors.push_back(id.to_string());
+            }
+        } else {
+            list_of_sensors.push_back("DEADBEEF".to_string());
+            list_of_sensors.push_back("DEADC0DE".to_string());
+            list_of_sensors.push_back("ABAD1DEA".to_string());
+        }
+        list_of_sensors
+    };
+}
 
 #[cfg(debug_assertions)]
 const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
@@ -47,7 +62,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     return Ok(error_response);
                 }
                 let parsed_json_unwrapped = parsed_json.unwrap();
-                if !VALID_SENSORS.contains(&&*parsed_json_unwrapped.sensor) {
+                if !VALID_SENSORS.contains(&parsed_json_unwrapped.sensor) {
                     error!("Got a request from sensor '{}' which is not allowed to post data here. Ignoring request.", parsed_json_unwrapped.sensor);
                     let error_response = Response::builder()
                         .status(StatusCode::FORBIDDEN)
