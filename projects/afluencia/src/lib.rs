@@ -4,6 +4,7 @@ use hyper::{header::HeaderValue, header::CONTENT_TYPE, rt, Body, Client, Method,
 use log::{debug, error};
 use std::collections::BTreeMap;
 use std::env;
+use std::str::FromStr;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -144,6 +145,7 @@ pub struct AfluenciaClient {
     port: u32,
     user: Option<String>,
     password: Option<String>,
+    use_ssl: bool,
 }
 
 pub struct AfluenciaResponse {
@@ -159,6 +161,7 @@ impl AfluenciaClient {
             port,
             user: None,
             password: None,
+            use_ssl: false,
         }
     }
 
@@ -213,9 +216,11 @@ impl AfluenciaClient {
     }
 
     fn get_write_base_url(&self) -> String {
+        let prefix = if self.use_ssl { "https" } else { "http" };
+
         let mut generated_url = format!(
-            "http://{}:{}/write?db={}",
-            self.host, self.port, self.database
+            "{}://{}:{}/write?db={}",
+            prefix, self.host, self.port, self.database
         );
 
         if let Some(username) = &self.user {
@@ -246,6 +251,19 @@ impl Default for AfluenciaClient {
             None
         };
 
+        let use_ssl = if env::var("AFLUENCIA_USE_SSL").is_ok() {
+            let parsed_config_value =
+                bool::from_str(env::var("AFLUENCIA_USE_SSL").unwrap().as_str());
+            if parsed_config_value.is_err() {
+                error!("Could not parse configuration value if SSL should be used for InfluxDB. Disabling SSL!");
+                false
+            } else {
+                true
+            }
+        } else {
+            false
+        };
+
         AfluenciaClient {
             host: env::var("AFLUENCIA_HOST").expect("AFLUENCIA_HOST must be set"),
             database: env::var("AFLUENCIA_DB").expect("AFLUENCIA_DB must be set"),
@@ -255,6 +273,7 @@ impl Default for AfluenciaClient {
                 .unwrap(),
             user,
             password,
+            use_ssl,
         }
     }
 }
