@@ -41,7 +41,7 @@ impl Default for StorageBackend {
 }
 
 impl StorageBackend {
-    pub fn store_measurement(&self, sensor: &str, temperature: f32, humidity: f32, pressure: f32) {
+    pub fn store_measurement(&self, sensor: &str, temperature: f32, rel_humidity: f32, abs_humidity: f32, pressure: f32) {
         use schema::measurements;
 
         // get the current time as an over-all time measurement
@@ -51,7 +51,7 @@ impl StorageBackend {
         let mut influx_measurement = DataPoint::new("weather_measurement");
         influx_measurement.add_tag("sensor", Value::String(String::from(sensor)));
         influx_measurement.add_field("temperature", Value::Float(f64::from(temperature)));
-        influx_measurement.add_field("rel_humidity", Value::Float(f64::from(humidity)));
+        influx_measurement.add_field("rel_humidity", Value::Float(f64::from(rel_humidity)));
         influx_measurement.add_field("abs_humidity", Value::Float(0.0));
         influx_measurement.add_field("pressure", Value::Float(f64::from(pressure)));
         influx_measurement.add_field("on_battery", Value::Boolean(false));
@@ -69,7 +69,7 @@ impl StorageBackend {
                     sensor,
                     time: &measurement_time,
                     temperature,
-                    humidity,
+                    humidity: rel_humidity,
                     pressure,
                 };
 

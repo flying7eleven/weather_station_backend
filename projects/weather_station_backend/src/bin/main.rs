@@ -48,6 +48,10 @@ fn get_version_str() -> String {
     )
 }
 
+fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
+    0.0
+}
+
 fn service_handler(req: Request<Body>) -> ResponseFuture {
     Box::new(
         req.into_body()
@@ -69,15 +73,17 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                         .body(Body::empty())?;
                     return Ok(error_response);
                 }
+                let abs_humidity = calculate_absolute_humidity(parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity);
                 warn!(
-                    "sensor: {}, temp.: {:02.2}, hum.: {:02.2}, press.: {:04.2}",
+                    "sensor: {}, temp.: {:02.2} °C, rel. hum.: {:02.2}%, rel. hum.: {:02.2} g/m³, press.: {:04.2} hPa",
                     parsed_json_unwrapped.sensor,
                     parsed_json_unwrapped.temperature,
                     parsed_json_unwrapped.humidity,
+                    abs_humidity,
                     parsed_json_unwrapped.pressure
                 );
                 let storage_backend = StorageBackend::default();
-                storage_backend.store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, parsed_json_unwrapped.pressure);
+                storage_backend.store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, abs_humidity, parsed_json_unwrapped.pressure);
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::empty())?;
