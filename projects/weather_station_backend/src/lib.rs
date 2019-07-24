@@ -54,7 +54,7 @@ impl StorageBackend {
         influx_measurement.add_field("humidity", Value::Float(f64::from(humidity)));
         influx_measurement.add_field("pressure", Value::Float(f64::from(pressure)));
         influx_measurement.add_field("on_battery", Value::Boolean(false));
-        influx_measurement.add_field("battery_voltage", Value::Float(4.00));
+        influx_measurement.add_field("battery_voltage", Value::Float(4.20));
         influx_measurement.add_timestamp(measurement_time.timestamp_nanos());
 
         // write into the InfluxDB
