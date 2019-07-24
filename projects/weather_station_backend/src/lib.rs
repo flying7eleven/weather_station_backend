@@ -41,7 +41,14 @@ impl Default for StorageBackend {
 }
 
 impl StorageBackend {
-    pub fn store_measurement(&self, sensor: &str, temperature: f32, rel_humidity: f32, abs_humidity: f32, pressure: f32) {
+    pub fn store_measurement(
+        &self,
+        sensor: &str,
+        temperature: f32,
+        rel_humidity: f32,
+        abs_humidity: f32,
+        pressure: f32,
+    ) {
         use schema::measurements;
 
         // get the current time as an over-all time measurement

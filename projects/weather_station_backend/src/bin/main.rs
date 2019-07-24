@@ -49,7 +49,18 @@ fn get_version_str() -> String {
 }
 
 fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
-    0.0
+    let a = if temperature >= 0.0 { 7.5 } else { 7.6 };
+
+    let b = if temperature >= 0.0 { 237.3 } else { 240.7 };
+
+    let r_star = 8314.3;
+    let m_w = 18.016;
+    let t_k = temperature + 273.15;
+
+    let ssd_t = 6.1078 * f32::powf(10.0, (a * temperature) / (b + temperature));
+    let dd_t = rel_humidity / 100.0 * ssd_t;
+
+    f32::powf(10.0, 5.0) * m_w / r_star * dd_t / t_k
 }
 
 fn service_handler(req: Request<Body>) -> ResponseFuture {
