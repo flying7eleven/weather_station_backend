@@ -59,7 +59,7 @@ impl StorageBackend {
         influx_measurement.add_tag("sensor", Value::String(String::from(sensor)));
         influx_measurement.add_field("temperature", Value::Float(f64::from(temperature)));
         influx_measurement.add_field("rel_humidity", Value::Float(f64::from(rel_humidity)));
-        influx_measurement.add_field("abs_humidity", Value::Float(0.0));
+        influx_measurement.add_field("abs_humidity", Value::Float(f64::from(abs_humidity)));
         influx_measurement.add_field("pressure", Value::Float(f64::from(pressure)));
         influx_measurement.add_field("on_battery", Value::Boolean(false));
         influx_measurement.add_field("battery_voltage", Value::Float(4.20));
