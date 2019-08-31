@@ -9,7 +9,7 @@ name = "afluencia"
 path = "src/lib.rs"
 
 [dependencies]
-hyper = "0.12.29"
-log = "0.4.6"
-dotenv = "0.14.1"
-futures = "0.1"
+hyper = "*"
+log = "*"
+dotenv = "*"
+futures = "*"
