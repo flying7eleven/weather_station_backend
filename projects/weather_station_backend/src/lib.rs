@@ -1,42 +1,14 @@
-#[macro_use]
-extern crate diesel;
-
-use crate::models::NewMeasurement;
 use afluencia::{AfluenciaClient, DataPoint, Value};
 use chrono::Local;
-use diesel::prelude::*;
-use diesel::query_dsl::RunQueryDsl;
-use log::debug;
-use std::env;
-use std::str::FromStr;
 
 pub mod boundary;
 pub mod models;
-pub mod schema;
 
-pub struct StorageBackend {
-    connection: Option<MysqlConnection>,
-}
+pub struct StorageBackend;
 
 impl Default for StorageBackend {
     fn default() -> Self {
-        let rational_db_enabled = bool::from_str(
-            &env::var("WEATHER_STATION_USE_DB").unwrap_or_else(|_| String::from("true")),
-        )
-        .unwrap_or(true);
-
-        if rational_db_enabled {
-            let database_url =
-                env::var("WEATHER_DATABASE_URL").expect("WEATHER_DATABASE_URL must be set");
-            let tmp_connection = MysqlConnection::establish(&database_url)
-                .unwrap_or_else(|_| panic!("Error connecting to {}", database_url));
-
-            return StorageBackend {
-                connection: Some(tmp_connection),
-            };
-        }
-
-        StorageBackend { connection: None }
+        StorageBackend
     }
 }
 
@@ -49,8 +21,6 @@ impl StorageBackend {
         abs_humidity: f32,
         pressure: f32,
     ) {
-        use schema::measurements;
-
         // get the current time as an over-all time measurement
         let measurement_time = Local::now().naive_utc();
 
@@ -68,25 +38,5 @@ impl StorageBackend {
         // write into the InfluxDB
         let influx_client = AfluenciaClient::default();
         influx_client.write_measurement(influx_measurement);
-
-        // just execute the rest if the rational database support was enabled
-        match &self.connection {
-            Some(connection) => {
-                let db_measurement = NewMeasurement {
-                    sensor,
-                    time: &measurement_time,
-                    temperature,
-                    humidity: rel_humidity,
-                    pressure,
-                };
-
-                // write into the database
-                diesel::insert_into(measurements::table)
-                    .values(&db_measurement)
-                    .execute(connection)
-                    .expect("Error saving new measurement!");
-            }
-            None => debug!("Not writing to the local database since it was disabled."),
-        }
     }
 }
