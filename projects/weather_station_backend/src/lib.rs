@@ -19,6 +19,7 @@ impl StorageBackend {
         rel_humidity: f32,
         abs_humidity: f32,
         pressure: f32,
+        voltage: f32,
     ) {
         // get the current time as an over-all time measurement
         let measurement_time = Local::now().naive_utc();
@@ -31,7 +32,7 @@ impl StorageBackend {
         influx_measurement.add_field("abs_humidity", Value::Float(f64::from(abs_humidity)));
         influx_measurement.add_field("pressure", Value::Float(f64::from(pressure)));
         influx_measurement.add_field("on_battery", Value::Boolean(false));
-        influx_measurement.add_field("battery_voltage", Value::Float(4.20));
+        influx_measurement.add_field("battery_voltage", Value::Float(f64::from(voltage)));
         influx_measurement.add_timestamp(measurement_time.timestamp_nanos());
 
         // write into the InfluxDB
