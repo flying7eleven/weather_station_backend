@@ -283,20 +283,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn generate_valid_write_base_url_with_default_initialization_and_no_auth_env_vars_set() {
-        env::set_var("AFLUENCIA_HOST", "mockedhost");
-        env::set_var("AFLUENCIA_DB", "mockeddb");
-        env::set_var("AFLUENCIA_PORT", "5678");
-
-        let client = AfluenciaClient::default();
-
-        assert_eq!(
-            "http://mockedhost:5678/write?db=mockeddb",
-            client.get_write_base_url()
-        );
-    }
-
-    #[test]
     fn generate_valid_write_base_url_with_default_initialization_and_auth_env_vars_set() {
         env::set_var("AFLUENCIA_HOST", "mockedhost");
         env::set_var("AFLUENCIA_DB", "mockeddb");
