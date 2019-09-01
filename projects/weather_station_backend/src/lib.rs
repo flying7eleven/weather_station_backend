@@ -2,7 +2,6 @@ use afluencia::{AfluenciaClient, DataPoint, Value};
 use chrono::Local;
 
 pub mod boundary;
-pub mod models;
 
 pub struct StorageBackend;
 
