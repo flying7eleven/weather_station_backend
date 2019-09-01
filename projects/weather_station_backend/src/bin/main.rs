@@ -17,7 +17,7 @@ lazy_static! {
     static ref VALID_SENSORS: LinkedList<String> = {
         let mut list_of_sensors: LinkedList<String> = LinkedList::new();
         if env::var("WEATHER_STATION_SENSORS").is_ok() {
-            for id in env::var("WEATHER_STATION_SENSORS").unwrap().split(",") {
+            for id in env::var("WEATHER_STATION_SENSORS").unwrap().split(',') {
                 list_of_sensors.push_back(id.to_string());
             }
         } else {
