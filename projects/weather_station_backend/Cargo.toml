@@ -9,16 +9,14 @@ name = "weather_station_backend"
 path = "src/bin/main.rs"
 
 [dependencies]
-log = "*"
-hyper = "*"
-fern = "*"
+afluencia = { path = "../afluencia" }
 chrono = "*"
+diesel = { version = "*", features = ["mysql", "chrono"] }
+dotenv = "*"
+fern = "*"
+futures = "*"
+hyper = "*"
+lazy_static = "*"
+log = "*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
-dotenv = "*"
-diesel = { version = "*", features = ["mysql", "chrono"] }
-futures = "*"
-
-[dev-dependencies]
-mockers = "*"
-mockers_derive = "*"

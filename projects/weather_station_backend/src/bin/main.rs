@@ -1,16 +1,33 @@
 use chrono::Local;
 use core::borrow::Borrow;
+use dotenv::dotenv;
 use futures::stream::Stream;
 use futures::Future;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
+use lazy_static::lazy_static;
 use log::{error, info, warn, LevelFilter};
-use std::str;
+use std::collections::LinkedList;
+use std::env;
+use std::str::FromStr;
 use weather_station_backend::boundary::Measurement;
 use weather_station_backend::StorageBackend;
 
-// a (currently) hard coded list of all valid sensor IDs
-static VALID_SENSORS: [&str; 3] = ["DEADBEEF", "DEADC0DE", "ABAD1DEA"];
+lazy_static! {
+    static ref VALID_SENSORS: LinkedList<String> = {
+        let mut list_of_sensors: LinkedList<String> = LinkedList::new();
+        if env::var("WEATHER_STATION_SENSORS").is_ok() {
+            for id in env::var("WEATHER_STATION_SENSORS").unwrap().split(',') {
+                list_of_sensors.push_back(id.to_string());
+            }
+        } else {
+            list_of_sensors.push_back("DEADBEEF".to_string());
+            list_of_sensors.push_back("DEADC0DE".to_string());
+            list_of_sensors.push_back("ABAD1DEA".to_string());
+        }
+        list_of_sensors
+    };
+}
 
 #[cfg(debug_assertions)]
 const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
@@ -31,6 +48,21 @@ fn get_version_str() -> String {
     )
 }
 
+fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
+    let a = if temperature >= 0.0 { 7.5 } else { 7.6 };
+
+    let b = if temperature >= 0.0 { 237.3 } else { 240.7 };
+
+    let r_star = 8314.3;
+    let m_w = 18.016;
+    let t_k = temperature + 273.15;
+
+    let ssd_t = 6.1078 * f32::powf(10.0, (a * temperature) / (b + temperature));
+    let dd_t = rel_humidity / 100.0 * ssd_t;
+
+    f32::powf(10.0, 5.0) * m_w / r_star * dd_t / t_k
+}
+
 fn service_handler(req: Request<Body>) -> ResponseFuture {
     Box::new(
         req.into_body()
@@ -45,22 +77,24 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     return Ok(error_response);
                 }
                 let parsed_json_unwrapped = parsed_json.unwrap();
-                if !VALID_SENSORS.contains(&&*parsed_json_unwrapped.sensor) {
+                if !VALID_SENSORS.contains(&parsed_json_unwrapped.sensor) {
                     error!("Got a request from sensor '{}' which is not allowed to post data here. Ignoring request.", parsed_json_unwrapped.sensor);
                     let error_response = Response::builder()
                         .status(StatusCode::FORBIDDEN)
                         .body(Body::empty())?;
                     return Ok(error_response);
                 }
+                let abs_humidity = calculate_absolute_humidity(parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity);
                 warn!(
-                    "sensor: {}, temp.: {:02.2}, hum.: {:02.2}, press.: {:04.2}",
+                    "sensor: {}, temp.: {:02.2} °C, rel. hum.: {:02.2}%, rel. hum.: {:02.2} g/m³, press.: {:04.2} hPa",
                     parsed_json_unwrapped.sensor,
                     parsed_json_unwrapped.temperature,
                     parsed_json_unwrapped.humidity,
+                    abs_humidity,
                     parsed_json_unwrapped.pressure
                 );
                 let storage_backend = StorageBackend::default();
-                let _measurement_entry = storage_backend.store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, parsed_json_unwrapped.pressure);
+                storage_backend.store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, abs_humidity, parsed_json_unwrapped.pressure);
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
                     .body(Body::empty())?;
@@ -70,6 +104,9 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
 }
 
 fn main() {
+    // load the .env file for the configuration options
+    dotenv().ok();
+
     // configure the logging framework and set the corresponding log level
     let log_initialization = fern::Dispatch::new()
         .format(|out, message, record| {
@@ -86,6 +123,7 @@ fn main() {
         .level_for("tokio_threadpool", LevelFilter::Info)
         .level_for("hyper", LevelFilter::Info)
         .level_for("mio", LevelFilter::Info)
+        .level_for("want", LevelFilter::Info)
         .chain(std::io::stdout())
         .chain(fern::log_file("weather_station_backend.log").unwrap())
         .apply();
@@ -100,6 +138,15 @@ fn main() {
         "Starting up the REST API for the Weather Station in version {}...",
         get_version_str()
     );
+
+    // check if the database part should be enabled or not
+    let database_enabled = bool::from_str(
+        &env::var("WEATHER_STATION_USE_DB").unwrap_or_else(|_| String::from("true")),
+    )
+    .unwrap_or(false);
+    if !database_enabled {
+        info!("Classical rational database support is disabled by configuration.");
+    }
 
     // print all valid sensors
     for sensor_id in VALID_SENSORS.iter() {
