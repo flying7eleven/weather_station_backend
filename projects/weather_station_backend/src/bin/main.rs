@@ -64,7 +64,7 @@ fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
 }
 
 fn estimate_voltage(raw_voltage: f32) -> f32 {
-    (5.06 * raw_voltage) / 1024.0
+    (5.26 * raw_voltage) / 1023.0
 }
 
 fn service_handler(req: Request<Body>) -> ResponseFuture {
