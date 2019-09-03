@@ -7,4 +7,5 @@ pub struct Measurement {
     pub humidity: f32,
     pub pressure: f32,
     pub raw_voltage: f32,
+    pub charge: f32,
 }
