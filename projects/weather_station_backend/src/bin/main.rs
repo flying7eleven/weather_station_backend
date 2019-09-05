@@ -186,7 +186,7 @@ mod tests {
 
     #[test]
     fn posting_correct_data_with_unknown_sensor_results_in_403_forbidden() {
-        let valid_body = Body::from("{\"sensor\": \"UNKNOWN\", \"temperature\": 22.0, \"humidity\": 50.0, \"pressure\": 1013.2}");
+        let valid_body = Body::from("{\"temperature\":27.05,\"humidity\":37.95,\"pressure\":1011.72,\"raw_voltage\":713.00,\"charge\":51.13,\"sensor\":\"UNKNOWN\",\"version\":\"0.0.1-dev\"}");
 
         let fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
             .header("User-Agent", "my-awesome-agent/1.0")
@@ -204,7 +204,7 @@ mod tests {
     #[test]
     #[should_panic] // TODO: this should not be the solution, just a temporary fix
     fn posting_correct_data_with_known_sensor_results_in_204_no_content() {
-        let valid_body = Body::from("{\"sensor\": \"DEADBEEF\", \"temperature\": 22.0, \"humidity\": 50.0, \"pressure\": 1013.2}");
+        let valid_body = Body::from("{\"temperature\":27.05,\"humidity\":37.95,\"pressure\":1011.72,\"raw_voltage\":713.00,\"charge\":51.13,\"sensor\":\"DEADBEEF\",\"version\":\"0.0.1-dev\"}");
 
         let fake_request = Request::post("https://api.foo.bar/v1/sensor/measurement")
             .header("User-Agent", "my-awesome-agent/1.0")
