@@ -8,4 +8,5 @@ pub struct Measurement {
     pub pressure: f32,
     pub raw_voltage: f32,
     pub charge: f32,
+    pub version: String,
 }
