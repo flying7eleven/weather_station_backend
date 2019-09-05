@@ -63,10 +63,6 @@ fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
     f32::powf(10.0, 5.0) * m_w / r_star * dd_t / t_k
 }
 
-fn estimate_voltage(raw_voltage: f32) -> f32 {
-    (5.26 * raw_voltage) / 1023.0
-}
-
 fn service_handler(req: Request<Body>) -> ResponseFuture {
     Box::new(
         req.into_body()
@@ -89,16 +85,14 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     return Ok(error_response);
                 }
                 let abs_humidity = calculate_absolute_humidity(parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity);
-                let est_voltage = estimate_voltage(parsed_json_unwrapped.raw_voltage);
                 warn!(
-                    "sensor: {} ({}), temp.: {:02.2} °C, rel. hum.: {:02.2}%, rel. hum.: {:02.2} g/m³, press.: {:04.2} hPa, est. voltage: {:01.2} V (raw {:.2}) -> {:.2} %",
+                    "sensor: {} ({}), temp.: {:02.2} °C, rel. hum.: {:02.2}%, rel. hum.: {:02.2} g/m³, press.: {:04.2} hPa, raw. voltage: {:.2} -> {:.2} %",
                     parsed_json_unwrapped.sensor,
                     parsed_json_unwrapped.version,
                     parsed_json_unwrapped.temperature,
                     parsed_json_unwrapped.humidity,
                     abs_humidity,
                     parsed_json_unwrapped.pressure,
-                    est_voltage,
                     parsed_json_unwrapped.raw_voltage,
                     parsed_json_unwrapped.charge,
                 );
