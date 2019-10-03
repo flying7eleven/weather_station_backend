@@ -1,33 +1,15 @@
 use chrono::Local;
 use core::borrow::Borrow;
-use dotenv::dotenv;
 use futures::stream::Stream;
 use futures::Future;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
-use lazy_static::lazy_static;
 use log::{error, info, warn, LevelFilter};
-use std::collections::LinkedList;
 use std::env;
 use std::str::FromStr;
 use weather_station_backend::boundary::Measurement;
+use weather_station_backend::configuration::Configuration;
 use weather_station_backend::StorageBackend;
-
-lazy_static! {
-    static ref VALID_SENSORS: LinkedList<String> = {
-        let mut list_of_sensors: LinkedList<String> = LinkedList::new();
-        if env::var("WEATHER_STATION_SENSORS").is_ok() {
-            for id in env::var("WEATHER_STATION_SENSORS").unwrap().split(',') {
-                list_of_sensors.push_back(id.to_string());
-            }
-        } else {
-            list_of_sensors.push_back("DEADBEEF".to_string());
-            list_of_sensors.push_back("DEADC0DE".to_string());
-            list_of_sensors.push_back("ABAD1DEA".to_string());
-        }
-        list_of_sensors
-    };
-}
 
 #[cfg(debug_assertions)]
 const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
@@ -69,6 +51,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
             .concat2()
             .from_err()
             .and_then(|entire_body| {
+                let config = Configuration::from_defaut_locations();
                 let parsed_json = serde_json::from_slice::<Measurement>(&entire_body);
                 if parsed_json.is_err() {
                     let error_response = Response::builder()
@@ -77,7 +60,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     return Ok(error_response);
                 }
                 let parsed_json_unwrapped = parsed_json.unwrap();
-                if !VALID_SENSORS.contains(&parsed_json_unwrapped.sensor) {
+                if !config.allowed_sensors.contains(&parsed_json_unwrapped.sensor) {
                     error!("Got a request from sensor '{}' which is not allowed to post data here. Ignoring request.", parsed_json_unwrapped.sensor);
                     let error_response = Response::builder()
                         .status(StatusCode::FORBIDDEN)
@@ -96,7 +79,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
                     parsed_json_unwrapped.raw_voltage,
                     parsed_json_unwrapped.charge,
                 );
-                let storage_backend = StorageBackend::default();
+                let storage_backend = StorageBackend::with_configuration(config);
                 storage_backend.store_measurement(parsed_json_unwrapped.sensor.borrow(), parsed_json_unwrapped.temperature, parsed_json_unwrapped.humidity, abs_humidity, parsed_json_unwrapped.pressure, parsed_json_unwrapped.raw_voltage, parsed_json_unwrapped.charge);
                 let response = Response::builder()
                     .status(StatusCode::NO_CONTENT)
@@ -107,8 +90,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
 }
 
 fn main() {
-    // load the .env file for the configuration options
-    dotenv().ok();
+    let config = Configuration::from_defaut_locations();
 
     // configure the logging framework and set the corresponding log level
     let log_initialization = fern::Dispatch::new()
@@ -152,7 +134,7 @@ fn main() {
     }
 
     // print all valid sensors
-    for sensor_id in VALID_SENSORS.iter() {
+    for sensor_id in config.allowed_sensors.iter() {
         info!("{} is a valid sensor identifier", sensor_id);
     }
 

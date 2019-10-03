@@ -11,5 +11,4 @@ path = "src/lib.rs"
 [dependencies]
 hyper = "*"
 log = "*"
-dotenv = "*"
 futures = "*"

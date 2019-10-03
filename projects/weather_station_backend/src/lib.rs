@@ -1,17 +1,22 @@
+use crate::configuration::Configuration;
 use afluencia::{AfluenciaClient, DataPoint, Value};
 use chrono::Local;
+use std::clone::Clone;
 
 pub mod boundary;
+pub mod configuration;
 
-pub struct StorageBackend;
-
-impl Default for StorageBackend {
-    fn default() -> Self {
-        StorageBackend
-    }
+pub struct StorageBackend {
+    configuration: Configuration,
 }
 
 impl StorageBackend {
+    pub fn with_configuration(config: Configuration) -> StorageBackend {
+        StorageBackend {
+            configuration: config,
+        }
+    }
+
     pub fn store_measurement(
         &self,
         sensor: &str,
@@ -37,8 +42,24 @@ impl StorageBackend {
         influx_measurement.add_field("on_battery", Value::Boolean(false));
         influx_measurement.add_timestamp(measurement_time.timestamp_nanos());
 
-        // write into the InfluxDB
-        let influx_client = AfluenciaClient::default();
+        // create an instance of the influx client
+        let mut influx_client = AfluenciaClient::new(
+            self.configuration.influx_storage.host.as_str(),
+            self.configuration.influx_storage.port,
+            self.configuration.influx_storage.database.as_str(),
+        );
+
+        // check if a username and password can be set, if so, do so :D
+        if self.configuration.influx_storage.user.is_some() {
+            let user_optional = self.configuration.influx_storage.user.clone();
+            influx_client.user(user_optional.unwrap());
+        }
+        if self.configuration.influx_storage.password.is_some() {
+            let password_optional = self.configuration.influx_storage.password.clone();
+            influx_client.user(password_optional.unwrap());
+        }
+
+        // write the measurement to the database
         influx_client.write_measurement(influx_measurement);
     }
 }

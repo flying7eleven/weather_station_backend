@@ -1,10 +1,7 @@
-use dotenv::dotenv;
 use futures::{self, Future, Stream};
 use hyper::{header::HeaderValue, header::CONTENT_TYPE, rt, Body, Client, Method, Request, Uri};
 use log::{debug, error};
 use std::collections::BTreeMap;
-use std::env;
-use std::str::FromStr;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -235,53 +232,11 @@ impl AfluenciaClient {
     }
 }
 
-impl Default for AfluenciaClient {
-    fn default() -> Self {
-        dotenv().ok();
-
-        let user = if env::var("AFLUENCIA_USER").is_ok() {
-            Some(env::var("AFLUENCIA_USER").unwrap())
-        } else {
-            None
-        };
-
-        let password = if env::var("AFLUENCIA_PASSWORD").is_ok() {
-            Some(env::var("AFLUENCIA_PASSWORD").unwrap())
-        } else {
-            None
-        };
-
-        let use_ssl = if env::var("AFLUENCIA_USE_SSL").is_ok() {
-            let parsed_config_value =
-                bool::from_str(env::var("AFLUENCIA_USE_SSL").unwrap().as_str());
-            if parsed_config_value.is_err() {
-                error!("Could not parse configuration value if SSL should be used for InfluxDB. Disabling SSL!");
-                false
-            } else {
-                true
-            }
-        } else {
-            false
-        };
-
-        AfluenciaClient {
-            host: env::var("AFLUENCIA_HOST").expect("AFLUENCIA_HOST must be set"),
-            database: env::var("AFLUENCIA_DB").expect("AFLUENCIA_DB must be set"),
-            port: env::var("AFLUENCIA_PORT")
-                .expect("AFLUENCIA_PORT must be set")
-                .parse()
-                .unwrap(),
-            user,
-            password,
-            use_ssl,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /*
     #[test]
     fn generate_valid_write_base_url_with_default_initialization_and_auth_env_vars_set() {
         env::set_var("AFLUENCIA_HOST", "mockedhost");
@@ -297,6 +252,7 @@ mod tests {
             client.get_write_base_url()
         );
     }
+    */
 
     #[test]
     fn generate_valid_base_url_with_individual_initialization_and_authentication() {
