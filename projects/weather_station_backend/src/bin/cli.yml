@@ -1,0 +1,9 @@
+name: <filled automatically>
+version: <filled automatically>
+author: <filled automatically>
+about: <filled automatically>
+subcommands:
+  - config:
+      about: Just print our the currently loaded config (can be piped into a configuration file).
+  - run:
+      about: Run the backend and wait for requests to store new information.

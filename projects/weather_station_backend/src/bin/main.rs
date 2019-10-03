@@ -1,4 +1,5 @@
 use chrono::Local;
+use clap::{crate_authors, crate_description, crate_name, crate_version, load_yaml, App};
 use core::borrow::Borrow;
 use futures::stream::Stream;
 use futures::Future;
@@ -89,35 +90,7 @@ fn service_handler(req: Request<Body>) -> ResponseFuture {
     )
 }
 
-fn main() {
-    let config = Configuration::from_defaut_locations();
-
-    // configure the logging framework and set the corresponding log level
-    let log_initialization = fern::Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "{}[{}][{}] {}",
-                Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                record.target(),
-                record.level(),
-                message
-            ))
-        })
-        .level(LOGGING_LEVEL)
-        .level_for("tokio_reactor", LevelFilter::Info)
-        .level_for("tokio_threadpool", LevelFilter::Info)
-        .level_for("hyper", LevelFilter::Info)
-        .level_for("mio", LevelFilter::Info)
-        .level_for("want", LevelFilter::Info)
-        .chain(std::io::stdout())
-        .chain(fern::log_file("weather_station_backend.log").unwrap())
-        .apply();
-
-    // ensure the logging engine works, otherwise we should rather terminate here
-    if log_initialization.is_err() {
-        panic!("Could not initialize logging. Terminating!");
-    }
-
+fn run_server(config: Configuration) {
     // tell the user that we started to spin up the API
     info!(
         "Starting up the REST API for the Weather Station in version {}...",
@@ -145,6 +118,55 @@ fn main() {
         .serve(new_service)
         .map_err(|e| error!("server error: {}", e));
     hyper::rt::run(server);
+}
+
+fn main() {
+    // configure the command line parser
+    let configuration_parser_config = load_yaml!("cli.yml");
+    let matches = App::from_yaml(configuration_parser_config)
+        .author(crate_authors!())
+        .version(crate_version!())
+        .name(crate_name!())
+        .about(crate_description!())
+        .get_matches();
+
+    //
+    let config = Configuration::from_defaut_locations();
+
+    // do not initialize the logger for the config sub-command
+    if matches.subcommand_matches("config").is_none() {
+        setup_logger();
+    }
+
+    // check which subcommand should be executed and call it
+    if let Some(_) = matches.subcommand_matches("config") {
+        println!("{}", serde_yaml::to_string(&config).unwrap());
+    } else if let Some(_) = matches.subcommand_matches("run") {
+        run_server(config);
+    } else {
+        error!("No known subcommand was selected. Please refer to the help for information about how to use this application.");
+    }
+}
+
+fn setup_logger() {
+    let _ = fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(LOGGING_LEVEL)
+        .level_for("tokio_reactor", LevelFilter::Info)
+        .level_for("tokio_threadpool", LevelFilter::Info)
+        .level_for("hyper", LevelFilter::Info)
+        .level_for("mio", LevelFilter::Info)
+        .level_for("want", LevelFilter::Info)
+        .chain(std::io::stdout())
+        .apply();
 }
 
 #[cfg(test)]
