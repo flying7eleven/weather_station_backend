@@ -97,6 +97,24 @@ fn run_server(config: Configuration) {
         get_version_str()
     );
 
+    // show some confoguration options
+    info!(
+        "Writing information to InfluxDB host '{}:{}'",
+        config.influx_storage.host, config.influx_storage.port
+    );
+    info!(
+        "Writing information to InfluxDB database '{}'",
+        config.influx_storage.database
+    );
+    match config.influx_storage.user {
+        Some(user) => info!("Writing information to InfluxDB with user '{}'", user),
+        None => {}
+    };
+    match config.influx_storage.password {
+        Some(_) => info!("Writing information to InfluxDB using a password"),
+        None => {}
+    };
+
     // check if the database part should be enabled or not
     let database_enabled = bool::from_str(
         &env::var("WEATHER_STATION_USE_DB").unwrap_or_else(|_| String::from("true")),
