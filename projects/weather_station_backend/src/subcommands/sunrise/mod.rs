@@ -1,3 +1,5 @@
+use log::info;
+
 // sunrise calculations based on https://github.com/buelowp/sunset/blob/master/src/SunSet.cpp
 struct Sunrise {
     julian_date: f64,
@@ -193,11 +195,27 @@ impl Sunrise {
     }
 
     pub fn set_current_date(&mut self, year: f64, month: i32, day: i32) {
-        self.julian_date = self.calc_jd(f64::from(year), month, day);
+        self.julian_date = self.calc_jd(year, month, day);
     }
 }
 
-pub fn run_subcommand() {}
+pub fn run_subcommand() {
+    let mut test_date = Sunrise {
+        latitude: 51.21875,
+        longitude: 6.76341,
+        julian_date: 0.0,
+    };
+    test_date.set_current_date(2019.0, 10, 4);
+
+    info!(
+        "Sunrise: {} seconds from midnight",
+        test_date.calc_sunrise_utc()
+    );
+    info!(
+        "Sunset: {} seconds from midnight",
+        test_date.calc_sunset_utc()
+    );
+}
 
 #[cfg(test)]
 mod tests {
