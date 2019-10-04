@@ -5,7 +5,7 @@ use futures::stream::Stream;
 use futures::Future;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
-use log::{error, info, warn, LevelFilter};
+use log::{debug, error, info, warn, LevelFilter};
 use std::env;
 use std::str::FromStr;
 use weather_station_backend::boundary::Measurement;
@@ -98,20 +98,20 @@ fn run_server(config: Configuration) {
     );
 
     // show some confoguration options
-    info!(
+    debug!(
         "Writing information to InfluxDB host '{}:{}'",
         config.influx_storage.host, config.influx_storage.port
     );
-    info!(
+    debug!(
         "Writing information to InfluxDB database '{}'",
         config.influx_storage.database
     );
     match config.influx_storage.user {
-        Some(user) => info!("Writing information to InfluxDB with user '{}'", user),
+        Some(user) => debug!("Writing information to InfluxDB with user '{}'", user),
         None => {}
     };
     match config.influx_storage.password {
-        Some(_) => info!("Writing information to InfluxDB using a password"),
+        Some(_) => debug!("Writing information to InfluxDB using a password"),
         None => {}
     };
 
