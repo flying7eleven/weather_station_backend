@@ -1,6 +1,6 @@
 use crate::configuration::Configuration;
 use afluencia::{AfluenciaClient, DataPoint, Value};
-use chrono::Local;
+use chrono::{DateTime, Datelike, Local, Utc};
 use std::clone::Clone;
 
 pub mod boundary;
@@ -67,7 +67,6 @@ impl StorageBackend {
 
 // sunrise calculations based on https://github.com/buelowp/sunset/blob/master/src/SunSet.cpp
 struct SunriseSunsetCalculator {
-    julian_date: f64,
     latitude: f64,
     longitude: f64,
 }
@@ -192,19 +191,19 @@ impl SunriseSunsetCalculator {
             .acos() // in radians
     }
 
-    fn calc_jd(&self, year_in: f64, month_in: i32, day: i32) -> f64 {
+    fn calc_jd(&self, year_in: i32, month_in: u32, day: u32) -> f64 {
         let mut year = year_in;
         let mut month = month_in;
 
         if month <= 2 {
-            year -= 1.0;
+            year -= 1;
             month += 12;
         }
 
-        let a = (year / 100.0).floor();
+        let a = (f64::from(year) / 100.0).floor();
         let b = 2.0 - a + (a / 4.0).floor();
 
-        (365.25 * (year + 4716.0)).floor()
+        (365.25 * (f64::from(year) + 4716.0)).floor()
             + (30.600_1 * (f64::from(month) + 1.0)).floor()
             + f64::from(day)
             + b
@@ -215,8 +214,9 @@ impl SunriseSunsetCalculator {
         t * 36_525.0 + 2_451_545.0
     }
 
-    fn calc_sunrise_utc(&self) -> f64 {
-        let t = self.calc_time_julian_cent(self.julian_date);
+    fn calc_sunrise_utc(&self, date: DateTime<Utc>) -> f64 {
+        let julian_date = self.calc_jd(date.year(), date.month(), date.day());
+        let t = self.calc_time_julian_cent(julian_date);
         // first pass to approximate sunrise
         let mut eq_time = self.calc_equation_of_time(t);
         let mut solar_dec = self.calc_sun_declination(t);
@@ -236,8 +236,9 @@ impl SunriseSunsetCalculator {
         720.0 - time_diff - eq_time // return time in minutes from midnight
     }
 
-    fn calc_sunset_utc(&self) -> f64 {
-        let t = self.calc_time_julian_cent(self.julian_date);
+    fn calc_sunset_utc(&self, date: DateTime<Utc>) -> f64 {
+        let julian_date = self.calc_jd(date.year(), date.month(), date.day());
+        let t = self.calc_time_julian_cent(julian_date);
         // first pass to approximate sunset
         let mut eq_time = self.calc_equation_of_time(t);
         let mut solar_dec = self.calc_sun_declination(t);
@@ -258,10 +259,6 @@ impl SunriseSunsetCalculator {
         time_utc
         // time_utc + (60 * tzOffset) // return time in minutes from midnight
     }
-
-    pub fn set_current_date(&mut self, year: f64, month: i32, day: i32) {
-        self.julian_date = self.calc_jd(year, month, day);
-    }
 }
 
 impl From<Configuration> for SunriseSunsetCalculator {
@@ -269,7 +266,6 @@ impl From<Configuration> for SunriseSunsetCalculator {
         SunriseSunsetCalculator {
             latitude: f64::from(config.sunset_sunrise_annotations.latitude),
             longitude: f64::from(config.sunset_sunrise_annotations.longitude),
-            julian_date: 0.0,
         }
     }
 }
@@ -277,30 +273,43 @@ impl From<Configuration> for SunriseSunsetCalculator {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::TimeZone;
 
     #[test]
     fn calculating_sunrise_in_utc_seconds_works_for_duesseldorf_germany() {
-        let mut test_date = SunriseSunsetCalculator {
+        let calculator = SunriseSunsetCalculator {
             latitude: 51.21875,
             longitude: 6.76341,
-            julian_date: 0.0,
         };
-        test_date.set_current_date(2019.0, 10, 4);
 
-        assert_eq!((test_date.calc_sunrise_utc() - 337.668) > 0.0, true);
-        assert_eq!((test_date.calc_sunrise_utc() - 337.668) < 0.0001, true);
+        let test_date = Utc.ymd(2019, 10, 4).and_hms(0, 0, 0);
+
+        assert_eq!(
+            (calculator.calc_sunrise_utc(test_date) - 337.668) > 0.0,
+            true
+        );
+        assert_eq!(
+            (calculator.calc_sunrise_utc(test_date) - 337.668) < 0.0001,
+            true
+        );
     }
 
     #[test]
     fn calculating_sunset_in_utc_seconds_works_for_duesseldorf_germany() {
-        let mut test_date = SunriseSunsetCalculator {
+        let calculator = SunriseSunsetCalculator {
             latitude: 51.21875,
             longitude: 6.76341,
-            julian_date: 0.0,
         };
-        test_date.set_current_date(2019.0, 10, 4);
 
-        assert_eq!((test_date.calc_sunset_utc() - 1024.9458) > 0.0, true);
-        assert_eq!((test_date.calc_sunset_utc() - 1024.9458) < 0.0001, true);
+        let test_date = Utc.ymd(2019, 10, 4).and_hms(0, 0, 0);
+
+        assert_eq!(
+            (calculator.calc_sunset_utc(test_date) - 1024.9458) > 0.0,
+            true
+        );
+        assert_eq!(
+            (calculator.calc_sunset_utc(test_date) - 1024.9458) < 0.0001,
+            true
+        );
     }
 }
