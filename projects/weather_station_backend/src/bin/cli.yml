@@ -5,5 +5,9 @@ about: <filled automatically>
 subcommands:
   - config:
       about: Just print our the currently loaded config (can be piped into a configuration file).
+  - sunrise:
+      about: Print out the time of the sunrise based on the configured location.
+  - sunset:
+      about: Print out the time of the sunset based on the configured location.
   - run:
       about: Run the backend and wait for requests to store new information.

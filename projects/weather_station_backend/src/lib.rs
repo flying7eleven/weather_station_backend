@@ -5,6 +5,7 @@ use std::clone::Clone;
 
 pub mod boundary;
 pub mod configuration;
+pub mod subcommands;
 
 pub struct StorageBackend {
     configuration: Configuration,

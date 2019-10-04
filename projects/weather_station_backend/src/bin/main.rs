@@ -10,6 +10,8 @@ use std::env;
 use std::str::FromStr;
 use weather_station_backend::boundary::Measurement;
 use weather_station_backend::configuration::Configuration;
+use weather_station_backend::subcommands::sunrise::run_subcommand as run_sunrise_subcommand;
+use weather_station_backend::subcommands::sunset::run_subcommand as run_sunset_subcommand;
 use weather_station_backend::StorageBackend;
 
 #[cfg(debug_assertions)]
@@ -159,8 +161,12 @@ fn main() {
         println!("{}", serde_yaml::to_string(&config).unwrap());
     } else if matches.subcommand_matches("run").is_some() {
         run_server(config);
+    } else if matches.subcommand_matches("sunrise").is_some() {
+        run_sunrise_subcommand();
+    } else if matches.subcommand_matches("sunset").is_some() {
+        run_sunset_subcommand();
     } else {
-        error!("No known subcommand was selected. Please refer to the help for information about how to use this application.");
+        error!("No known sub-command was selected. Please refer to the help for information about how to use this application.");
     }
 }
 
