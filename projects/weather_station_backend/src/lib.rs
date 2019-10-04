@@ -264,6 +264,16 @@ impl SunriseSunsetCalculator {
     }
 }
 
+impl From<Configuration> for SunriseSunsetCalculator {
+    fn from(config: Configuration) -> Self {
+        SunriseSunsetCalculator {
+            latitude: f64::from(config.sunset_sunrise_annotations.latitude),
+            longitude: f64::from(config.sunset_sunrise_annotations.longitude),
+            julian_date: 0.0,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
