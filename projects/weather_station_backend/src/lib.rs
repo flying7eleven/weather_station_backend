@@ -56,7 +56,7 @@ impl StorageBackend {
         }
         if self.configuration.influx_storage.password.is_some() {
             let password_optional = self.configuration.influx_storage.password.clone();
-            influx_client.user(password_optional.unwrap());
+            influx_client.password(password_optional.unwrap());
         }
 
         // write the measurement to the database
