@@ -15,6 +15,25 @@ pub struct InfluxConfiguration {
     pub use_ssl: bool,
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct SunsetSunriseAnnotations {
+    pub longitude: f32,
+    pub latitude: f32,
+    pub annotate_sunrise: bool,
+    pub annotate_sunset: bool,
+}
+
+impl Default for SunsetSunriseAnnotations {
+    fn default() -> Self {
+        SunsetSunriseAnnotations {
+            longitude: 0.0f32,
+            latitude: 0.0f32,
+            annotate_sunrise: false,
+            annotate_sunset: false,
+        }
+    }
+}
+
 impl Default for InfluxConfiguration {
     fn default() -> Self {
         InfluxConfiguration {
@@ -34,6 +53,9 @@ pub struct Configuration {
     pub influx_storage: InfluxConfiguration,
 
     #[serde(default)]
+    pub sunset_sunrise_annotations: SunsetSunriseAnnotations,
+
+    #[serde(default)]
     pub allowed_sensors: Vec<String>,
 }
 
@@ -41,6 +63,7 @@ impl Default for Configuration {
     fn default() -> Self {
         Configuration {
             influx_storage: InfluxConfiguration::default(),
+            sunset_sunrise_annotations: SunsetSunriseAnnotations::default(),
             allowed_sensors: vec![
                 "DEADBEEF".to_string(),
                 "BEEFCACE".to_string(),
