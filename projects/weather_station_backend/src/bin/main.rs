@@ -106,13 +106,11 @@ fn run_server(config: Configuration) {
         "Writing information to InfluxDB database '{}'",
         config.influx_storage.database
     );
-    match config.influx_storage.user {
-        Some(user) => debug!("Writing information to InfluxDB with user '{}'", user),
-        None => {}
+    if let Some(user) = config.influx_storage.user {
+        debug!("Writing information to InfluxDB with user '{}'", user)
     };
-    match config.influx_storage.password {
-        Some(_) => debug!("Writing information to InfluxDB using a password"),
-        None => {}
+    if config.influx_storage.password.is_some() {
+        debug!("Writing information to InfluxDB using a password")
     };
 
     // check if the database part should be enabled or not
@@ -157,9 +155,9 @@ fn main() {
     }
 
     // check which subcommand should be executed and call it
-    if let Some(_) = matches.subcommand_matches("config") {
+    if matches.subcommand_matches("config").is_some() {
         println!("{}", serde_yaml::to_string(&config).unwrap());
-    } else if let Some(_) = matches.subcommand_matches("run") {
+    } else if matches.subcommand_matches("run").is_some() {
         run_server(config);
     } else {
         error!("No known subcommand was selected. Please refer to the help for information about how to use this application.");
