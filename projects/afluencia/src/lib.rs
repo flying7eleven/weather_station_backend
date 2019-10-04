@@ -236,26 +236,8 @@ impl AfluenciaClient {
 mod tests {
     use super::*;
 
-    /*
     #[test]
-    fn generate_valid_write_base_url_with_default_initialization_and_auth_env_vars_set() {
-        env::set_var("AFLUENCIA_HOST", "mockedhost");
-        env::set_var("AFLUENCIA_DB", "mockeddb");
-        env::set_var("AFLUENCIA_PORT", "5678");
-        env::set_var("AFLUENCIA_USER", "username");
-        env::set_var("AFLUENCIA_PASSWORD", "password");
-
-        let client = AfluenciaClient::default();
-
-        assert_eq!(
-            "http://mockedhost:5678/write?db=mockeddb&u=username&p=password",
-            client.get_write_base_url()
-        );
-    }
-    */
-
-    #[test]
-    fn generate_valid_base_url_with_individual_initialization_and_authentication() {
+    fn generate_valid_base_url_with_all_parameters_set() {
         let mut client = AfluenciaClient::new("hostname", 1234, "test");
         client
             .user(String::from("username"))
@@ -263,6 +245,38 @@ mod tests {
 
         assert_eq!(
             "http://hostname:1234/write?db=test&u=username&p=password",
+            client.get_write_base_url()
+        );
+    }
+
+    #[test]
+    fn generate_valid_base_url_without_authentication() {
+        let client = AfluenciaClient::new("hostname", 1234, "test");
+
+        assert_eq!(
+            "http://hostname:1234/write?db=test",
+            client.get_write_base_url()
+        );
+    }
+
+    #[test]
+    fn generate_valid_base_url_with_just_username_set() {
+        let mut client = AfluenciaClient::new("hostname", 1234, "test");
+        client.user(String::from("username"));
+
+        assert_eq!(
+            "http://hostname:1234/write?db=test&u=username",
+            client.get_write_base_url()
+        );
+    }
+
+    #[test]
+    fn generate_valid_base_url_with_just_password_set() {
+        let mut client = AfluenciaClient::new("hostname", 1234, "test");
+        client.password(String::from("password"));
+
+        assert_eq!(
+            "http://hostname:1234/write?db=test&p=password",
             client.get_write_base_url()
         );
     }
