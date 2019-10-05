@@ -1,7 +1,7 @@
 use crate::configuration::Configuration;
-use crate::SunriseSunsetCalculator;
 use chrono::{Datelike, TimeZone, Utc};
 use log::info;
+use solnedgang::SunriseSunsetCalculator;
 
 pub fn run_subcommand() {
     //
@@ -9,7 +9,10 @@ pub fn run_subcommand() {
     let config = Configuration::from_defaut_locations();
 
     // get and instance of the calculator
-    let sunset_calculator = SunriseSunsetCalculator::from(config);
+    let sunset_calculator = SunriseSunsetCalculator {
+        latitude: f64::from(config.sunset_sunrise_annotations.latitude),
+        longitude: f64::from(config.sunset_sunrise_annotations.longitude),
+    };
 
     //
     let now = Utc::now();
