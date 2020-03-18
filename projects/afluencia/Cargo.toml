@@ -9,6 +9,6 @@ name = "afluencia"
 path = "src/lib.rs"
 
 [dependencies]
-hyper = "*"
-log = "*"
-futures = "*"
+hyper = "0.12"
+log = "0.4"
+futures = "0.1"
