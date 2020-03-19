@@ -1,6 +1,6 @@
 # Weather Station (Backend)
 
-[![Build Status](https://travis-ci.org/thuetz/weather_station_backend.svg?branch=master)](https://travis-ci.org/thuetz/weather_station_backend)
+![Build and test](https://github.com/flying7eleven/weather_station_backend/workflows/Build%20and%20test/badge.svg)
 
 ## Development (or just building the tool)
 
