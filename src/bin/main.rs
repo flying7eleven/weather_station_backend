@@ -2,7 +2,7 @@
 
 use chrono::Local;
 use log::{debug, info, LevelFilter};
-use rocket::routes;
+use rocket::{catchers, routes};
 use std::env;
 use weather_station_backend::configuration::Configuration;
 
@@ -55,9 +55,20 @@ fn run_server() {
 
     // initialize the REST part
     rocket::ignite()
+        .register(catchers![
+            weather_station_backend::routes::not_found,
+            weather_station_backend::routes::internal_error,
+            weather_station_backend::routes::unauthorized,
+            weather_station_backend::routes::forbidden,
+            weather_station_backend::routes::unprocessable_entity,
+            weather_station_backend::routes::bad_request
+        ])
         .mount(
             "/v1",
-            routes![weather_station_backend::routes::sensor::store_new_measurement,],
+            routes![
+                weather_station_backend::routes::sensor::store_new_measurement,
+                weather_station_backend::routes::sensor::get_last_temperature,
+            ],
         )
         .launch();
 }

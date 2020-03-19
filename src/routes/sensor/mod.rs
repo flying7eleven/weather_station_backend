@@ -3,7 +3,7 @@ use crate::configuration::Configuration;
 use crate::StorageBackend;
 use log::{error, warn};
 use rocket::http::Status;
-use rocket::post;
+use rocket::{get, post};
 use rocket_contrib::json::Json;
 use std::borrow::Borrow;
 
@@ -56,4 +56,9 @@ pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
         measurement.charge,
     );
     Status::NoContent
+}
+
+#[get("/sensor/measurement/temperature")]
+pub fn get_last_temperature() -> Status {
+    Status::NotImplemented
 }
