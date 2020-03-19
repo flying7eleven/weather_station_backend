@@ -7,7 +7,6 @@ use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server, StatusCode};
 use log::{debug, error, info, warn, LevelFilter};
 use std::env;
-use std::str::FromStr;
 use weather_station_backend::boundary::Measurement;
 use weather_station_backend::configuration::Configuration;
 use weather_station_backend::StorageBackend;

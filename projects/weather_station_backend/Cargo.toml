@@ -9,7 +9,6 @@ name = "weather_station_backend"
 path = "src/bin/main.rs"
 
 [dependencies]
-afluencia = { path = "../afluencia" }
 chrono = "0.4"
 clap = {version = "2.33", features = ["yaml"]}
 fern = "0.6"
