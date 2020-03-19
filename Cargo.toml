@@ -10,7 +10,6 @@ path = "src/bin/main.rs"
 
 [dependencies]
 chrono = "0.4"
-clap = {version = "2.33", features = ["yaml"]}
 fern = "0.6"
 futures = "0.1"
 hyper = "0.12"

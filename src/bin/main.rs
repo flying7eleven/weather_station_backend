@@ -1,5 +1,4 @@
 use chrono::Local;
-use clap::{crate_authors, crate_description, crate_name, crate_version, load_yaml, App};
 use core::borrow::Borrow;
 use futures::stream::Stream;
 use futures::Future;
@@ -127,31 +126,14 @@ fn run_server(config: Configuration) {
 }
 
 fn main() {
-    // configure the command line parser
-    let configuration_parser_config = load_yaml!("cli.yml");
-    let matches = App::from_yaml(configuration_parser_config)
-        .author(crate_authors!())
-        .version(crate_version!())
-        .name(crate_name!())
-        .about(crate_description!())
-        .get_matches();
-
     //
     let config = Configuration::from_defaut_locations();
 
-    // do not initialize the logger for the config sub-command
-    if matches.subcommand_matches("config").is_none() {
-        setup_logger();
-    }
+    //
+    setup_logger();
 
-    // check which subcommand should be executed and call it
-    if matches.subcommand_matches("config").is_some() {
-        println!("{}", serde_yaml::to_string(&config).unwrap());
-    } else if matches.subcommand_matches("run").is_some() {
-        run_server(config);
-    } else {
-        error!("No known subcommand was selected. Please refer to the help for information about how to use this application.");
-    }
+    //
+    run_server(config);
 }
 
 fn setup_logger() {
