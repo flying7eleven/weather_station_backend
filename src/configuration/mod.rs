@@ -1,4 +1,4 @@
-use log::error;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::fs::metadata;
@@ -53,10 +53,13 @@ impl Default for Configuration {
 impl Configuration {
     pub fn from_defaut_locations() -> Configuration {
         if metadata("/etc/weather_station_backend/config.yml").is_ok() {
+            debug!("Found '/etc/weather_station_backend/config.yml' and using it as a configuration for this instance of the program");
             return Configuration::from_file("/etc/weather_station_backend/config.yml");
         } else if metadata("config.yml").is_ok() {
+            debug!("Found config.yml in the current directory and using it as a configuration for this instance of the program");
             return Configuration::from_file("config.yml");
         }
+        debug!("Could not find any configuration file, using default values for this instance of the program");
         Configuration::default()
     }
 
