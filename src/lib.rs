@@ -1,13 +1,16 @@
+#![feature(proc_macro_hygiene, decl_macro)]
+
 use crate::configuration::Configuration;
 use chrono::Local;
-use std::clone::Clone;
 use futures::{self, Future, Stream};
 use hyper::{header::HeaderValue, header::CONTENT_TYPE, rt, Body, Client, Method, Request, Uri};
 use log::{debug, error};
+use std::clone::Clone;
 use std::collections::BTreeMap;
 
 pub mod boundary;
 pub mod configuration;
+pub mod routes;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +112,7 @@ pub fn line_serialization(point: DataPoint) -> String {
                     ","
                 }
             }
-                .to_string(),
+            .to_string(),
         );
         line.push(escape_keys_and_tags(&field));
         line.push("=".to_string());
