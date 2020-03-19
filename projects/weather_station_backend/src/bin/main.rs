@@ -113,15 +113,6 @@ fn run_server(config: Configuration) {
         debug!("Writing information to InfluxDB using a password")
     };
 
-    // check if the database part should be enabled or not
-    let database_enabled = bool::from_str(
-        &env::var("WEATHER_STATION_USE_DB").unwrap_or_else(|_| String::from("true")),
-    )
-    .unwrap_or(false);
-    if !database_enabled {
-        info!("Classical rational database support is disabled by configuration.");
-    }
-
     // print all valid sensors
     for sensor_id in config.allowed_sensors.iter() {
         info!("{} is a valid sensor identifier", sensor_id);
