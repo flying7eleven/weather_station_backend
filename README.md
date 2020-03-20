@@ -35,3 +35,10 @@ cargo build --release
 
 and wait until all dependencies are fetched, build and then the application is build. After
 building it should be placed in `target/release`.
+
+### Build a container, exporting and importing it
+
+```
+docker build -t weatherstation:0.4.1 .
+docker image save weatherstation:0.4.1 | xz -zc - > weather_station_backend_0_4_1.tar.xz
+```
