@@ -1509,7 +1509,7 @@ checksum = "fc9f36ad51f25b0219a3d4d13b90eb44cd075dff8b6280cca015775d7acaddd8"
 
 [[package]]
 name = "weather_station_backend"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "chrono",
  "fern",
