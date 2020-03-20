@@ -1,4 +1,4 @@
-use log::{info, error};
+use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::fs::metadata;

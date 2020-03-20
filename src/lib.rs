@@ -2,11 +2,11 @@
 
 use crate::configuration::Configuration;
 use chrono::Local;
-use futures::{self, Future, Stream};
-use hyper::{header::HeaderValue, header::CONTENT_TYPE, rt, Body, Client, Method, Request, Uri};
 use log::{debug, error};
+use reqwest::blocking::Client;
 use std::clone::Clone;
 use std::collections::BTreeMap;
+use std::time::Duration;
 
 pub mod boundary;
 pub mod configuration;
@@ -182,43 +182,36 @@ impl AfluenciaClient {
     }
 
     pub fn write_measurement(&self, measurement: DataPoint) {
-        let target_url: Uri = self.get_write_base_url().parse().unwrap();
-        let client = Client::new();
-
-        // prepare the actual request to the influx server
+        let target_url = self.get_write_base_url();
         let measurement_line = line_serialization(measurement);
-        let mut data_request = Request::new(Body::from(measurement_line));
-        *data_request.method_mut() = Method::POST;
-        *data_request.uri_mut() = target_url.clone();
-        data_request.headers_mut().insert(
-            CONTENT_TYPE,
-            HeaderValue::from_static("application/x-www-form-urlencoded"),
-        );
 
         //
-        rt::spawn(
-            client
-                .request(data_request)
-                .and_then(|resp| {
-                    let status = resp.status().as_u16();
+        static APP_USER_AGENT: &str =
+            concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
-                    resp.into_body()
-                        .concat2()
-                        .and_then(move |body| Ok(String::from_utf8(body.to_vec()).unwrap()))
-                        .and_then(move |body| Ok(AfluenciaResponse { status, body }))
-                })
-                .map_err(|_| error!("Error during processing the InfluxDB request."))
-                .then(|response| match response {
-                    Ok(ref resp) if resp.status == 204 => {
-                        debug!("Successfully wrote entry into InfluxDB.");
-                        Ok(())
+        //
+        match Client::builder()
+            .user_agent(APP_USER_AGENT)
+            .timeout(Duration::from_secs(10))
+            .gzip(true)
+            .build()
+        {
+            Ok(client) => match client.post(&target_url).body(measurement_line).send() {
+                Ok(response) => {
+                    if response.status().is_server_error() {
+                        error!("Could not store entry since the InfluxDB responded with an error")
+                    } else {
+                        debug!("Successfully stored entry in InfluxDB");
                     }
-                    _ => {
-                        error!("Failed while writing into InfluxDB.");
-                        Err(())
-                    }
-                }),
-        );
+                }
+                Err(_) => {
+                    error!("Failed to send data to the InfluxDB server");
+                }
+            },
+            Err(_) => {
+                error!("Could not write measurement since the client could not be initialized");
+            }
+        }
     }
 
     fn get_write_base_url(&self) -> String {

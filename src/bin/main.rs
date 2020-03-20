@@ -88,7 +88,10 @@ fn setup_logger() {
         .level_for("hyper", LevelFilter::Warn)
         .level_for("launch", LevelFilter::Warn)
         .level_for("launch_", LevelFilter::Warn)
-        .level_for("rocket::rocket", LevelFilter::Warn)
+        .level_for("rocket", LevelFilter::Warn)
+        .level_for("reqwest", LevelFilter::Warn)
+        .level_for("mio", LevelFilter::Warn)
+        .level_for("want", LevelFilter::Warn)
         .level_for("_", LevelFilter::Error)
         .chain(std::io::stdout())
         .apply();
