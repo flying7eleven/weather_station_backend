@@ -1,8 +1,8 @@
 use chrono::Local;
-use log::{debug, info, LevelFilter};
+use log::{info, LevelFilter};
 use rocket::{catchers, routes};
 use std::env;
-use weather_station_backend::configuration::Configuration;
+use weather_station_backend::Configuration;
 
 #[cfg(debug_assertions)]
 const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
@@ -30,22 +30,6 @@ async fn run_server() {
         get_version_str()
     );
 
-    // show some confoguration options
-    debug!(
-        "Writing information to InfluxDB host '{}:{}'",
-        config.influx_storage.host, config.influx_storage.port
-    );
-    debug!(
-        "Writing information to InfluxDB database '{}'",
-        config.influx_storage.database
-    );
-    if let Some(user) = config.influx_storage.user {
-        debug!("Writing information to InfluxDB with user '{}'", user)
-    };
-    if config.influx_storage.password.is_some() {
-        debug!("Writing information to InfluxDB using a password")
-    };
-
     // print all valid sensors
     for sensor_id in config.allowed_sensors.iter() {
         info!("{} is a valid sensor identifier", sensor_id);
@@ -56,19 +40,19 @@ async fn run_server() {
         .register(
             "/",
             catchers![
-                weather_station_backend::routes::not_found,
-                weather_station_backend::routes::internal_error,
-                weather_station_backend::routes::unauthorized,
-                weather_station_backend::routes::forbidden,
-                weather_station_backend::routes::unprocessable_entity,
-                weather_station_backend::routes::bad_request
+                weather_station_backend::not_found,
+                weather_station_backend::internal_error,
+                weather_station_backend::unauthorized,
+                weather_station_backend::forbidden,
+                weather_station_backend::unprocessable_entity,
+                weather_station_backend::bad_request
             ],
         )
         .mount(
             "/v1",
             routes![
-                weather_station_backend::routes::sensor::store_new_measurement,
-                weather_station_backend::routes::sensor::get_last_temperature,
+                weather_station_backend::store_new_measurement,
+                weather_station_backend::get_last_temperature,
             ],
         )
         .launch()

@@ -1,356 +1,157 @@
-use crate::configuration::Configuration;
-use chrono::Local;
-use log::{debug, error};
-use reqwest::blocking::Client;
-use std::clone::Clone;
-use std::collections::BTreeMap;
-use std::time::Duration;
+use log::{error, info, warn};
+use rocket::catch;
+use rocket::http::Status;
+use rocket::serde::json::Json;
+use rocket::{get, post};
+use serde::{Deserialize, Serialize};
+use std::default::Default;
+use std::fs::metadata;
+use std::fs::File;
+use std::string::ToString;
 
-pub mod boundary;
-pub mod configuration;
-pub mod routes;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// this part is used from https://github.com/driftluo/InfluxDBClient-rs by the github user driftluo
-
-/// Influxdb value, Please look at [this address](https://docs.influxdata.com/influxdb/v1.3/write_protocols/line_protocol_reference/)
-pub enum Value {
-    String(String),
-    Integer(i64),
-    Float(f64),
-    Boolean(bool),
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Configuration {
+    #[serde(default)]
+    pub allowed_sensors: Vec<String>,
 }
 
-pub struct DataPoint {
-    pub measurement: String,
-    pub tags: BTreeMap<String, Value>,
-    pub fields: BTreeMap<String, Value>,
-    pub timestamp: Option<i64>,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Measurement {
+    pub sensor: String,
+    pub temperature: f32,
+    pub humidity: f32,
+    pub pressure: f32,
+    pub raw_voltage: f32,
+    pub charge: f32,
+    pub firmware_version: String,
 }
 
-impl DataPoint {
-    pub fn new(measurement: &str) -> DataPoint {
-        DataPoint {
-            measurement: String::from(measurement),
-            tags: BTreeMap::new(),
-            fields: BTreeMap::new(),
-            timestamp: None,
+impl Default for Configuration {
+    fn default() -> Self {
+        Configuration {
+            allowed_sensors: vec![
+                "DEADBEEF".to_string(),
+                "BEEFCACE".to_string(),
+                "BADDCAFE".to_string(),
+            ],
         }
     }
-
-    pub fn add_tag<T: ToString>(&mut self, tag: T, value: Value) -> &mut Self {
-        self.tags.insert(tag.to_string(), value);
-        self
-    }
-
-    pub fn add_field<T: ToString>(&mut self, field: T, value: Value) -> &mut Self {
-        self.fields.insert(field.to_string(), value);
-        self
-    }
-
-    pub fn add_timestamp(&mut self, timestamp: i64) -> &mut Self {
-        self.timestamp = Some(timestamp);
-        self
-    }
 }
 
-#[inline]
-fn escape_measurement(value: &str) -> String {
-    value.replace(",", "\\,").replace(" ", "\\ ")
-}
-
-#[inline]
-fn escape_keys_and_tags(value: &str) -> String {
-    value
-        .replace(",", "\\,")
-        .replace("=", "\\=")
-        .replace(" ", "\\ ")
-}
-
-#[inline]
-fn escape_string_field_value(value: &str) -> String {
-    format!("\"{}\"", value.replace("\"", "\\\""))
-}
-
-pub fn line_serialization(point: DataPoint) -> String {
-    let mut line = Vec::new();
-    line.push(escape_measurement(&point.measurement));
-
-    for (tag, value) in point.tags {
-        line.push(",".to_string());
-        line.push(escape_keys_and_tags(&tag));
-        line.push("=".to_string());
-
-        match value {
-            Value::String(s) => line.push(escape_keys_and_tags(&s)),
-            Value::Float(f) => line.push(f.to_string()),
-            Value::Integer(i) => line.push(i.to_string() + "i"),
-            Value::Boolean(b) => line.push({
-                if b {
-                    "true".to_string()
-                } else {
-                    "false".to_string()
-                }
-            }),
+impl Configuration {
+    pub fn from_defaut_locations() -> Configuration {
+        if metadata("/etc/weather_station_backend/config.yml").is_ok() {
+            info!("Found '/etc/weather_station_backend/config.yml' and using it as a configuration for this instance of the program");
+            return Configuration::from_file("/etc/weather_station_backend/config.yml");
+        } else if metadata("config.yml").is_ok() {
+            info!("Found config.yml in the current directory and using it as a configuration for this instance of the program");
+            return Configuration::from_file("config.yml");
         }
+        info!("Could not find any configuration file, using default values for this instance of the program");
+        Configuration::default()
     }
 
-    let mut was_first = true;
-
-    for (field, value) in point.fields {
-        line.push(
-            {
-                if was_first {
-                    was_first = false;
-                    " "
-                } else {
-                    ","
-                }
-            }
-            .to_string(),
-        );
-        line.push(escape_keys_and_tags(&field));
-        line.push("=".to_string());
-
-        match value {
-            Value::String(s) => line.push(escape_string_field_value(&s.replace("\\\"", "\\\\\""))),
-            Value::Float(f) => line.push(f.to_string()),
-            Value::Integer(i) => line.push(i.to_string() + "i"),
-            Value::Boolean(b) => line.push({
-                if b {
-                    "true".to_string()
-                } else {
-                    "false".to_string()
-                }
-            }),
-        }
-    }
-
-    if let Some(t) = point.timestamp {
-        line.push(" ".to_string());
-        line.push(t.to_string());
-    }
-
-    line.push("\n".to_string());
-
-    line.join("")
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub struct AfluenciaClient {
-    host: String,
-    database: String,
-    port: u32,
-    user: Option<String>,
-    password: Option<String>,
-    use_ssl: bool,
-}
-
-pub struct AfluenciaResponse {
-    pub status: u16,
-    pub body: String,
-}
-
-impl AfluenciaClient {
-    pub fn new(hostname: &str, port: u32, database: &str) -> AfluenciaClient {
-        AfluenciaClient {
-            host: String::from(hostname),
-            database: String::from(database),
-            port,
-            user: None,
-            password: None,
-            use_ssl: false,
-        }
-    }
-
-    pub fn user(&mut self, user: String) -> &mut AfluenciaClient {
-        self.user = Some(user);
-        self
-    }
-
-    pub fn password(&mut self, password: String) -> &mut AfluenciaClient {
-        self.password = Some(password);
-        self
-    }
-
-    pub fn write_measurement(&self, measurement: DataPoint) {
-        let target_url = self.get_write_base_url();
-        let measurement_line = line_serialization(measurement);
-
-        //
-        static APP_USER_AGENT: &str =
-            concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
-
-        //
-        match Client::builder()
-            .user_agent(APP_USER_AGENT)
-            .timeout(Duration::from_secs(10))
-            .gzip(true)
-            .build()
-        {
-            Ok(client) => match client.post(&target_url).body(measurement_line).send() {
-                Ok(response) => {
-                    if response.status().is_server_error() {
-                        error!("Could not store entry since the InfluxDB responded with an error")
-                    } else {
-                        debug!("Successfully stored entry in InfluxDB");
-                    }
-                }
-                Err(_) => {
-                    error!("Failed to send data to the InfluxDB server");
-                }
+    pub fn from_file(config_file: &str) -> Configuration {
+        match File::open(config_file) {
+            Ok(file_handle) => {
+                let read_configuration: Configuration =
+                    serde_yaml::from_reader(file_handle).unwrap();
+                return read_configuration;
             },
-            Err(_) => {
-                error!("Could not write measurement since the client could not be initialized");
-            }
+            Err(_) => error!("Could not load '{}' as a configuration file, falling back to default configuration", config_file),
         }
+        Configuration::default()
     }
 
-    fn get_write_base_url(&self) -> String {
-        let prefix = if self.use_ssl { "https" } else { "http" };
-
-        let mut generated_url = format!(
-            "{}://{}:{}/write?db={}",
-            prefix, self.host, self.port, self.database
-        );
-
-        if let Some(username) = &self.user {
-            generated_url = format!("{}&u={}", generated_url, username);
-        }
-
-        if let Some(password) = &self.password {
-            generated_url = format!("{}&p={}", generated_url, password);
-        }
-
-        generated_url
+    pub fn from_yaml(configuration: &str) -> Configuration {
+        let read_configuration: Configuration = serde_yaml::from_str(configuration).unwrap();
+        read_configuration
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn generate_valid_base_url_with_all_parameters_set() {
-        let mut client = AfluenciaClient::new("hostname", 1234, "test");
-        client
-            .user(String::from("username"))
-            .password(String::from("password"));
-
-        assert_eq!(
-            "http://hostname:1234/write?db=test&u=username&p=password",
-            client.get_write_base_url()
-        );
-    }
-
-    #[test]
-    fn generate_valid_base_url_without_authentication() {
-        let client = AfluenciaClient::new("hostname", 1234, "test");
-
-        assert_eq!(
-            "http://hostname:1234/write?db=test",
-            client.get_write_base_url()
-        );
-    }
-
-    #[test]
-    fn generate_valid_base_url_with_just_username_set() {
-        let mut client = AfluenciaClient::new("hostname", 1234, "test");
-        client.user(String::from("username"));
-
-        assert_eq!(
-            "http://hostname:1234/write?db=test&u=username",
-            client.get_write_base_url()
-        );
-    }
-
-    #[test]
-    fn generate_valid_base_url_with_just_password_set() {
-        let mut client = AfluenciaClient::new("hostname", 1234, "test");
-        client.password(String::from("password"));
-
-        assert_eq!(
-            "http://hostname:1234/write?db=test&p=password",
-            client.get_write_base_url()
-        );
-    }
-
-    #[test]
-    fn line_serialization_of_valid_datapoint_works() {
-        let mut test_data_point = DataPoint::new("measurement_name");
-        test_data_point.add_tag("testtag", Value::String(String::from("tagvalue")));
-        test_data_point.add_field("string_field", Value::String(String::from("string_value")));
-        test_data_point.add_field("float_field", Value::Float(1.2345));
-        test_data_point.add_field("int_field", Value::Integer(12345));
-        test_data_point.add_field("bool_field", Value::Boolean(true));
-        test_data_point.add_timestamp(1_234_567_890);
-
-        let serialized_data_point = line_serialization(test_data_point);
-
-        assert_eq!("measurement_name,testtag=tagvalue bool_field=true,float_field=1.2345,int_field=12345i,string_field=\"string_value\" 1234567890\n", serialized_data_point);
-    }
+#[catch(500)]
+pub fn internal_error() -> &'static str {
+    ""
 }
 
-pub struct StorageBackend {
-    configuration: Configuration,
+#[catch(401)]
+pub fn unauthorized() -> &'static str {
+    ""
 }
 
-impl StorageBackend {
-    pub fn with_configuration(config: Configuration) -> StorageBackend {
-        StorageBackend {
-            configuration: config,
-        }
+#[catch(403)]
+pub fn forbidden() -> &'static str {
+    ""
+}
+
+#[catch(404)]
+pub fn not_found() -> &'static str {
+    ""
+}
+
+#[catch(422)]
+pub fn unprocessable_entity() -> &'static str {
+    ""
+}
+
+#[catch(400)]
+pub fn bad_request() -> &'static str {
+    ""
+}
+
+fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
+    let a = if temperature >= 0.0 { 7.5 } else { 7.6 };
+
+    let b = if temperature >= 0.0 { 237.3 } else { 240.7 };
+
+    let r_star = 8314.3;
+    let m_w = 18.016;
+    let t_k = temperature + 273.15;
+
+    let ssd_t = 6.1078 * f32::powf(10.0, (a * temperature) / (b + temperature));
+    let dd_t = rel_humidity / 100.0 * ssd_t;
+
+    f32::powf(10.0, 5.0) * m_w / r_star * dd_t / t_k
+}
+
+#[post("/sensor/measurement", data = "<measurement>")]
+pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
+    let config = Configuration::from_defaut_locations();
+
+    if !config.allowed_sensors.contains(&measurement.sensor) {
+        error!("Got a request from sensor '{}' which is not allowed to post data here. Ignoring request.", measurement.sensor);
+        return Status::Forbidden;
     }
 
-    pub fn store_measurement(
-        &self,
-        sensor: &str,
-        temperature: f32,
-        rel_humidity: f32,
-        abs_humidity: f32,
-        pressure: f32,
-        voltage: f32,
-        charge: f32,
-    ) {
-        // get the current time as an over-all time measurement
-        let measurement_time = Local::now().naive_utc();
+    let abs_humidity = calculate_absolute_humidity(measurement.temperature, measurement.humidity);
 
-        // define the required data structure for the InfluxDB
-        let mut influx_measurement = DataPoint::new("weather_measurement");
-        influx_measurement.add_tag("sensor", Value::String(String::from(sensor)));
-        influx_measurement.add_field("temperature", Value::Float(f64::from(temperature)));
-        influx_measurement.add_field("rel_humidity", Value::Float(f64::from(rel_humidity)));
-        influx_measurement.add_field("abs_humidity", Value::Float(f64::from(abs_humidity)));
-        influx_measurement.add_field("pressure", Value::Float(f64::from(pressure)));
-        influx_measurement.add_field("raw_battery_voltage", Value::Float(f64::from(voltage)));
-        influx_measurement.add_field("battery_charge", Value::Float(f64::from(charge)));
-        influx_measurement.add_field("on_battery", Value::Boolean(false));
-        influx_measurement.add_timestamp(measurement_time.timestamp_nanos());
+    warn!(
+        "sensor: {} ({}), temp.: {:02.2} °C, rel. hum.: {:02.2}%, rel. hum.: {:02.2} g/m³, press.: {:04.2} hPa, raw. voltage: {:.2} -> {:.2} %",
+        measurement.sensor,
+        measurement.firmware_version,
+        measurement.temperature,
+        measurement.humidity,
+        abs_humidity,
+        measurement.pressure,
+        measurement.raw_voltage,
+        measurement.charge,
+    );
 
-        // create an instance of the influx client
-        let mut influx_client = AfluenciaClient::new(
-            self.configuration.influx_storage.host.as_str(),
-            self.configuration.influx_storage.port,
-            self.configuration.influx_storage.database.as_str(),
-        );
+    // let storage_backend = StorageBackend::with_configuration(config);
+    // storage_backend.store_measurement(
+    //     measurement.sensor.borrow(),
+    //     measurement.temperature,
+    //     measurement.humidity,
+    //     abs_humidity,
+    //     measurement.pressure,
+    //     measurement.raw_voltage,
+    //     measurement.charge,
+    // );
+    // Status::NoContent
+    Status::NotImplemented
+}
 
-        // check if a username and password can be set, if so, do so :D
-        if self.configuration.influx_storage.user.is_some() {
-            let user_optional = self.configuration.influx_storage.user.clone();
-            influx_client.user(user_optional.unwrap());
-        }
-        if self.configuration.influx_storage.password.is_some() {
-            let password_optional = self.configuration.influx_storage.password.clone();
-            influx_client.password(password_optional.unwrap());
-        }
-
-        // write the measurement to the database
-        influx_client.write_measurement(influx_measurement);
-    }
+#[get("/sensor/measurement/temperature")]
+pub fn get_last_temperature() -> Status {
+    Status::NotImplemented
 }
