@@ -1,13 +1,7 @@
-use log::{error, info, warn};
-use rocket::catch;
 use rocket::http::Status;
 use rocket::serde::json::Json;
-use rocket::{get, post};
+use rocket::{catch, post};
 use serde::{Deserialize, Serialize};
-use std::default::Default;
-use std::fs::metadata;
-use std::fs::File;
-use std::string::ToString;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Configuration {
@@ -40,6 +34,9 @@ impl Default for Configuration {
 
 impl Configuration {
     pub fn from_defaut_locations() -> Configuration {
+        use log::{info, warn};
+        use std::fs::metadata;
+
         if metadata("/etc/weather_station_backend/config.yml").is_ok() {
             info!("Found '/etc/weather_station_backend/config.yml' and using it as a configuration for this instance of the program");
             return Configuration::from_file("/etc/weather_station_backend/config.yml");
@@ -52,6 +49,9 @@ impl Configuration {
     }
 
     pub fn from_file(config_file: &str) -> Configuration {
+        use log::error;
+        use std::fs::File;
+
         match File::open(config_file) {
             Ok(file_handle) => {
                 let read_configuration: Configuration =
@@ -121,6 +121,8 @@ fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
 
 #[post("/sensor/measurement", data = "<measurement>")]
 pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
+    use log::{error, info};
+
     let config = Configuration::from_defaut_locations();
 
     if !config.allowed_sensors.contains(&measurement.sensor) {
@@ -153,10 +155,5 @@ pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
     //     measurement.charge,
     // );
     // Status::NoContent
-    Status::NotImplemented
-}
-
-#[get("/sensor/measurement/temperature")]
-pub fn get_last_temperature() -> Status {
     Status::NotImplemented
 }

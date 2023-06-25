@@ -1,8 +1,3 @@
-use log::info;
-use rocket::{catchers, routes};
-use std::env;
-use weather_station_backend::Configuration;
-
 fn get_version_str() -> String {
     format!(
         "{}.{}.{}{}",
@@ -14,6 +9,10 @@ fn get_version_str() -> String {
 }
 
 async fn run_server() {
+    use log::info;
+    use rocket::{catchers, routes};
+    use weather_station_backend::Configuration;
+
     // read the configuration file for showing some useful information later on
     let config = Configuration::from_defaut_locations();
 
@@ -44,10 +43,7 @@ async fn run_server() {
         )
         .mount(
             "/v1",
-            routes![
-                weather_station_backend::store_new_measurement,
-                weather_station_backend::get_last_temperature,
-            ],
+            routes![weather_station_backend::store_new_measurement],
         )
         .launch()
         .await;
