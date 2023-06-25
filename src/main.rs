@@ -45,7 +45,8 @@ async fn run_server() {
                 weather_station_backend::unauthorized,
                 weather_station_backend::forbidden,
                 weather_station_backend::unprocessable_entity,
-                weather_station_backend::bad_request
+                weather_station_backend::bad_request,
+                weather_station_backend::not_implemented,
             ],
         )
         .mount(
@@ -71,14 +72,8 @@ async fn setup_logger() {
             ))
         })
         .level(LOGGING_LEVEL)
-        .level_for("hyper", LevelFilter::Warn)
-        .level_for("launch", LevelFilter::Warn)
-        .level_for("launch_", LevelFilter::Warn)
-        .level_for("rocket", LevelFilter::Warn)
-        .level_for("reqwest", LevelFilter::Warn)
-        .level_for("mio", LevelFilter::Warn)
-        .level_for("want", LevelFilter::Warn)
-        .level_for("_", LevelFilter::Error)
+        .level_for("hyper", LevelFilter::Off)
+        .level_for("rocket", LevelFilter::Off)
         .chain(std::io::stdout())
         .apply();
 }

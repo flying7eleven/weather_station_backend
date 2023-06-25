@@ -47,7 +47,7 @@ impl Configuration {
             info!("Found config.yml in the current directory and using it as a configuration for this instance of the program");
             return Configuration::from_file("config.yml");
         }
-        info!("Could not find any configuration file, using default values for this instance of the program");
+        warn!("Could not find any configuration file, using default values for this instance of the program");
         Configuration::default()
     }
 
@@ -99,6 +99,11 @@ pub fn bad_request() -> &'static str {
     ""
 }
 
+#[catch(501)]
+pub fn not_implemented() -> &'static str {
+    ""
+}
+
 fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
     let a = if temperature >= 0.0 { 7.5 } else { 7.6 };
 
@@ -125,7 +130,7 @@ pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
 
     let abs_humidity = calculate_absolute_humidity(measurement.temperature, measurement.humidity);
 
-    warn!(
+    info!(
         "sensor: {} ({}), temp.: {:02.2} °C, rel. hum.: {:02.2}%, rel. hum.: {:02.2} g/m³, press.: {:04.2} hPa, raw. voltage: {:.2} -> {:.2} %",
         measurement.sensor,
         measurement.firmware_version,
