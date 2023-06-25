@@ -1,5 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 use crate::configuration::Configuration;
 use chrono::Local;
 use log::{debug, error};

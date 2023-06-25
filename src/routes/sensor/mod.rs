@@ -3,8 +3,8 @@ use crate::configuration::Configuration;
 use crate::StorageBackend;
 use log::{error, warn};
 use rocket::http::Status;
+use rocket::serde::json::Json;
 use rocket::{get, post};
-use rocket_contrib::json::Json;
 use std::borrow::Borrow;
 
 fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {

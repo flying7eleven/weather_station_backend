@@ -2,19 +2,44 @@
 name = "weather_station_backend"
 version = "0.4.1"
 authors = ["Tim Hütz <tim@huetz.biz>"]
-edition = "2018"
+edition = "2021"
 
 [[bin]]
 name = "weather_station_backend"
 path = "src/bin/main.rs"
 
-[dependencies]
-chrono = "0.4"
-fern = "0.6"
-log = "0.4"
-reqwest = { version = "0.10", features = ["blocking", "gzip"] }
-rocket = "0.4"
-rocket_contrib = {version = "0.4", features = ["json"]}
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-serde_yaml = "0.8"
+[dependencies.chrono]
+version = "0.4.26"
+default-features = false
+features = ["std", "clock"]
+
+[dependencies.fern]
+version = "0.6.2"
+default-features = false
+
+[dependencies.log]
+version = "0.4.19"
+default-features = false
+
+[dependencies.reqwest]
+version = "0.11.18"
+default-features = false
+features = ["blocking", "gzip"]
+
+[dependencies.rocket]
+version = "0.5.0-rc.3"
+default-features = false
+features = ["json"]
+
+[dependencies.serde]
+version = "1.0.164"
+features = ["std", "derive"]
+
+[dependencies.serde_json]
+version = "1.0.96"
+default-features = false
+features = ["std"]
+
+[dependencies.serde_yaml]
+version = "0.9.21"
+default-features = false

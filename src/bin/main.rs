@@ -1,5 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
-
 use chrono::Local;
 use log::{debug, info, LevelFilter};
 use rocket::{catchers, routes};
@@ -54,15 +52,18 @@ fn run_server() {
     }
 
     // initialize the REST part
-    rocket::ignite()
-        .register(catchers![
-            weather_station_backend::routes::not_found,
-            weather_station_backend::routes::internal_error,
-            weather_station_backend::routes::unauthorized,
-            weather_station_backend::routes::forbidden,
-            weather_station_backend::routes::unprocessable_entity,
-            weather_station_backend::routes::bad_request
-        ])
+    let _ = rocket::build()
+        .register(
+            "/",
+            catchers![
+                weather_station_backend::routes::not_found,
+                weather_station_backend::routes::internal_error,
+                weather_station_backend::routes::unauthorized,
+                weather_station_backend::routes::forbidden,
+                weather_station_backend::routes::unprocessable_entity,
+                weather_station_backend::routes::bad_request
+            ],
+        )
         .mount(
             "/v1",
             routes![
