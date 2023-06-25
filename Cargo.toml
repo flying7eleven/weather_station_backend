@@ -1,6 +1,6 @@
 [package]
 name = "weather_station_backend"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Tim Janke <tim+github@janke.biz>"]
 edition = "2021"
 

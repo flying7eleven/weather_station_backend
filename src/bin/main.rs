@@ -20,7 +20,7 @@ fn get_version_str() -> String {
     )
 }
 
-fn run_server() {
+async fn run_server() {
     // read the configuration file for showing some useful information later on
     let config = Configuration::from_defaut_locations();
 
@@ -71,10 +71,11 @@ fn run_server() {
                 weather_station_backend::routes::sensor::get_last_temperature,
             ],
         )
-        .launch();
+        .launch()
+        .await;
 }
 
-fn setup_logger() {
+async fn setup_logger() {
     let _ = fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
@@ -98,7 +99,8 @@ fn setup_logger() {
         .apply();
 }
 
-fn main() {
-    setup_logger();
-    run_server();
+#[rocket::main]
+async fn main() {
+    setup_logger().await;
+    run_server().await;
 }
