@@ -20,6 +20,12 @@ default-features = false
 [dependencies.log]
 version = "0.4.19"
 default-features = false
+features = ["kv_unstable_std"]
+
+[dependencies.fenrir-rs]
+version = "0.4.1"
+default-features = false
+features = ["ureq", "json", "structured_logging"]
 
 [dependencies.reqwest]
 version = "0.11.18"

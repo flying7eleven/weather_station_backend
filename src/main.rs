@@ -1,14 +1,7 @@
-use chrono::Local;
-use log::{info, LevelFilter};
+use log::info;
 use rocket::{catchers, routes};
 use std::env;
 use weather_station_backend::Configuration;
-
-#[cfg(debug_assertions)]
-const LOGGING_LEVEL: LevelFilter = LevelFilter::Trace;
-
-#[cfg(not(debug_assertions))]
-const LOGGING_LEVEL: LevelFilter = LevelFilter::Info;
 
 fn get_version_str() -> String {
     format!(
@@ -60,26 +53,44 @@ async fn run_server() {
         .await;
 }
 
-async fn setup_logger() {
-    let _ = fern::Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "{}[{}][{}] {}",
-                Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                record.target(),
-                record.level(),
-                message
-            ))
-        })
-        .level(LOGGING_LEVEL)
+async fn setup_logger(verbosity_level: u8) {
+    use fenrir_rs::{Fenrir, NetworkingBackend, SerializationFormat};
+    use log::LevelFilter;
+    use reqwest::Url;
+
+    // create an instance for the Dispatcher to create a new logging configuration
+    let mut base_config = fern::Dispatch::new();
+
+    // determine the logging level based on the verbosity the user chose
+    base_config = match verbosity_level {
+        0 => base_config.level(LevelFilter::Warn),
+        1 => base_config.level(LevelFilter::Info),
+        2 => base_config.level(LevelFilter::Debug),
+        _3_or_more => base_config.level(LevelFilter::Trace),
+    };
+
+    //
+    let fenrir = Fenrir::builder()
+        .endpoint(Url::parse("http://192.168.1.50:3100").unwrap())
+        .network(NetworkingBackend::Ureq)
+        .format(SerializationFormat::Json)
+        .include_level()
+        .tag("app", "weather_station_backend")
+        .tag("environment", "balcony_ba188")
+        .build();
+
+    //
+    base_config
+        .chain(std::io::stdout())
+        .chain(Box::new(fenrir) as Box<dyn log::Log>)
         .level_for("hyper", LevelFilter::Off)
         .level_for("rocket", LevelFilter::Off)
-        .chain(std::io::stdout())
-        .apply();
+        .apply()
+        .unwrap();
 }
 
 #[rocket::main]
 async fn main() {
-    setup_logger().await;
+    setup_logger(3).await;
     run_server().await;
 }
