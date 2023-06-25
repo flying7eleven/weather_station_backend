@@ -1,3 +1,0 @@
-blacklisted-names = ["toto", "foo", "bar", "baz"]
-cognitive-complexity-threshold = 12
-too-many-arguments-threshold = 8
