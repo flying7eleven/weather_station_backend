@@ -1,10 +1,17 @@
 version: '3'
 services:
-  weather_station_backend:
-    container_name: weather_station_backend
-    image: wsb:test
+  weather_station_database:
+    container_name: weather_station_database
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=weather_station
+      - POSTGRES_PASSWORD=debugpassword
+      - POSTGRES_DB=weather_station
     restart: no
-    volumes:
-      - ./config.yml:/etc/weather_station_backend/config.yml:ro
     ports:
-      - "5471:5471"
+      - "5432:5432" # just needs to be exported for debugging purposes
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U weather_station" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
