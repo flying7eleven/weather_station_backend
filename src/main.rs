@@ -3,10 +3,7 @@ async fn run_server() {
     use rocket::config::{Shutdown, Sig};
     use rocket::routes;
     use rocket::Config as RocketConfig;
-    use weather_station_backend::Configuration;
-
-    // read the configuration file for showing some useful information later on
-    let config = Configuration::from_defaut_locations();
+    use weather_station_backend::CONFIG;
 
     // tell the user that we started to spin up the API
     info!(
@@ -18,7 +15,7 @@ async fn run_server() {
     );
 
     // print all valid sensors
-    for sensor_id in config.allowed_sensors.iter() {
+    for sensor_id in CONFIG.allowed_sensors.iter() {
         debug!("{} is a valid sensor identifier", sensor_id);
     }
 

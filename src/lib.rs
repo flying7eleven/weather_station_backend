@@ -1,7 +1,12 @@
+use lazy_static::lazy_static;
 use rocket::http::Status;
 use rocket::post;
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
+
+lazy_static! {
+    pub static ref CONFIG: Configuration = Configuration::from_defaut_locations();
+}
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Configuration {
@@ -88,9 +93,7 @@ fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
 pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
     use log::{error, info};
 
-    let config = Configuration::from_defaut_locations();
-
-    if !config.allowed_sensors.contains(&measurement.sensor) {
+    if !CONFIG.allowed_sensors.contains(&measurement.sensor) {
         error!(
             sensor_id=measurement.sensor;
             "Got a request from sensor '{}' which is not allowed to post data here; ignoring request.",
