@@ -81,6 +81,10 @@ async fn setup_logger(verbosity_level: u8) {
         .chain(Box::new(fenrir) as Box<dyn log::Log>)
         .level_for("hyper", LevelFilter::Off)
         .level_for("rocket", LevelFilter::Off)
+        .level_for("reqwest", LevelFilter::Off)
+        .level_for("want", LevelFilter::Off)
+        .level_for("mio", LevelFilter::Off)
+        .level_for("ureq", LevelFilter::Off)
         .apply()
         .unwrap();
 }
