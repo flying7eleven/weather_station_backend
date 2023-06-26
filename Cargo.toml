@@ -55,6 +55,6 @@ version = "1.4.0"
 default-features = false
 
 [dependencies.sqlx]
-version = "0.6.3"
+version = "0.7.0-alpha.3"
 default-features = false
-features = ["postgres", "runtime-async-std-native-tls", "macros"]
+features = ["postgres", "runtime-async-std-native-tls"]

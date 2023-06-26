@@ -96,8 +96,7 @@ fn calculate_absolute_humidity(temperature: f64, rel_humidity: f64) -> f64 {
 #[post("/sensor/measurement", data = "<measurement>")]
 pub async fn store_new_measurement(measurement: Json<Measurement>) -> Status {
     use log::{error, info};
-    use sqlx::query;
-    use sqlx::PgPool;
+    use sqlx::{query, PgPool};
 
     if !CONFIG.is_sensor_allowed(&measurement.sensor) {
         error!(
@@ -137,23 +136,17 @@ pub async fn store_new_measurement(measurement: Json<Measurement>) -> Status {
     .await
     .unwrap();
 
-    let insert_query_result = query!(
-        r#"
-            INSERT INTO measurements ( id, sensor_id, firmware, timestamp, temperature, rel_humidity, abs_humidity, pressure, raw_voltage, charge )
-            VALUES ( DEFAULT, $1, $2, NOW(), $3, $4, $5, $6, $7, $8 )
-            RETURNING id
-        "#,
-        measurement.sensor,
-        measurement.firmware_version,
-        measurement.temperature,
-        measurement.humidity,
-        abs_humidity,
-        measurement.pressure,
-        measurement.raw_voltage,
-        measurement.charge,
-    )
-    .fetch_one(&pool)
-    .await;
+    let insert_query_result = query("INSERT INTO measurements ( id, sensor_id, firmware, timestamp, temperature, rel_humidity, abs_humidity, pressure, raw_voltage, charge ) VALUES ( DEFAULT, $1, $2, NOW(), $3, $4, $5, $6, $7, $8 ) RETURNING id")
+        .bind(measurement.sensor.clone())
+        .bind(measurement.firmware_version.clone())
+        .bind(measurement.temperature)
+        .bind(measurement.humidity)
+        .bind(abs_humidity)
+        .bind(measurement.pressure)
+        .bind(measurement.raw_voltage)
+        .bind(measurement.charge)
+        .fetch_one(&pool)
+        .await;
 
     return match insert_query_result {
         Ok(_) => {

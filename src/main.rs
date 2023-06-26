@@ -82,6 +82,11 @@ async fn setup_logger(verbosity_level: u8) {
         .level_for("want", LevelFilter::Off)
         .level_for("mio", LevelFilter::Off)
         .level_for("ureq", LevelFilter::Off)
+        .level_for("tracing", LevelFilter::Off)
+        .level_for("async_io", LevelFilter::Off)
+        .level_for("polling", LevelFilter::Off)
+        .level_for("async_std", LevelFilter::Off)
+        .level_for("sqlx", LevelFilter::Off)
         .apply()
         .unwrap();
 }
