@@ -60,14 +60,17 @@ async fn setup_logger(verbosity_level: u8) {
     };
 
     //
-    let fenrir = Fenrir::builder()
+    let fenrir_builder = Fenrir::builder()
         .endpoint(Url::parse("http://192.168.1.50:3100").unwrap())
         .network(NetworkingBackend::Ureq)
         .format(SerializationFormat::Json)
         .include_level()
-        .tag("app", "weather_station_backend")
-        .tag("environment", "balcony_ba188")
-        .build();
+        .tag("app", "weather_station_backend");
+
+    #[cfg(debug_assertions)]
+    let fenrir = fenrir_builder.tag("environment", "development").build();
+    #[cfg(not(debug_assertions))]
+    let fenrir = fenrir_builder.tag("environment", "production").build();
 
     //
     base_config
