@@ -1,9 +1,8 @@
 async fn run_server() {
-    use log::{debug, info};
+    use log::info;
     use rocket::config::{Shutdown, Sig};
     use rocket::routes;
     use rocket::Config as RocketConfig;
-    use weather_station_backend::CONFIG;
 
     // tell the user that we started to spin up the API
     info!(
@@ -13,11 +12,6 @@ async fn run_server() {
         env!("CARGO_PKG_VERSION_PATCH"),
         option_env!("CARGO_PKG_VERSION_PRE").unwrap_or("")
     );
-
-    // print all valid sensors
-    for sensor_id in CONFIG.allowed_sensors.iter() {
-        debug!("{} is a valid sensor identifier", sensor_id);
-    }
 
     // rocket configuration figment
     let rocket_configuration_figment = RocketConfig::figment()

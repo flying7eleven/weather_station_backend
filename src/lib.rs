@@ -5,16 +5,15 @@ use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 
 lazy_static! {
-    pub static ref CONFIG: Configuration = Configuration::from_defaut_locations();
+    pub static ref CONFIG: Configuration = Configuration::from_default_locations();
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct Configuration {
-    #[serde(default)]
-    pub allowed_sensors: Vec<String>,
+    allowed_sensors: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Measurement {
     pub sensor: String,
     pub temperature: f32,
@@ -25,52 +24,43 @@ pub struct Measurement {
     pub firmware_version: String,
 }
 
-impl Default for Configuration {
-    fn default() -> Self {
-        Configuration {
-            allowed_sensors: vec![
-                "DEADBEEF".to_string(),
-                "BEEFCACE".to_string(),
-                "BADDCAFE".to_string(),
-            ],
-        }
-    }
-}
-
 impl Configuration {
-    pub fn from_defaut_locations() -> Configuration {
-        use log::{debug, warn};
+    pub fn from_default_locations() -> Configuration {
+        use log::{debug, error, warn};
         use std::fs::metadata;
-
-        if metadata("/etc/weather_station_backend/config.yml").is_ok() {
-            debug!("Found '/etc/weather_station_backend/config.yml' and using it as a configuration for this instance of the program");
-            return Configuration::from_file("/etc/weather_station_backend/config.yml");
-        } else if metadata("config.yml").is_ok() {
-            debug!("Found config.yml in the current directory and using it as a configuration for this instance of the program");
-            return Configuration::from_file("config.yml");
-        }
-        warn!("Could not find any configuration file, using default values for this instance of the program");
-        Configuration::default()
-    }
-
-    pub fn from_file(config_file: &str) -> Configuration {
-        use log::error;
         use std::fs::File;
 
-        match File::open(config_file) {
+        // determine which configuration file to use
+        let mut config_file = "/etc/weather_station_backend/config.yml";
+        if metadata(config_file).is_ok() {
+            debug!(
+                "Found '{}' and using it as a configuration for this instance of the program",
+                config_file
+            );
+        } else if metadata("config.yml").is_ok() {
+            debug!("Found config.yml in the current directory and using it as a configuration for this instance of the program");
+            config_file = "config.yml";
+        } else {
+            warn!("Could not find any configuration file, using default values for this instance of the program");
+            return Configuration::default();
+        }
+
+        // do actually try to read the configuration file and return it if we succeed
+        return match File::open(config_file) {
             Ok(file_handle) => {
                 let read_configuration: Configuration =
                     serde_yaml::from_reader(file_handle).unwrap();
-                return read_configuration;
-            },
-            Err(_) => error!("Could not load '{}' as a configuration file, falling back to default configuration", config_file),
-        }
-        Configuration::default()
+                read_configuration
+            }
+            Err(_) => {
+                error!("Could not load '{}' as a configuration file, falling back to default configuration", config_file);
+                Configuration::default()
+            }
+        };
     }
 
-    pub fn from_yaml(configuration: &str) -> Configuration {
-        let read_configuration: Configuration = serde_yaml::from_str(configuration).unwrap();
-        read_configuration
+    pub fn is_sensor_allowed(&self, sensor_id: &str) -> bool {
+        self.allowed_sensors.contains(&sensor_id.to_string())
     }
 }
 
@@ -93,7 +83,7 @@ fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
 pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
     use log::{error, info};
 
-    if !CONFIG.allowed_sensors.contains(&measurement.sensor) {
+    if !CONFIG.is_sensor_allowed(&measurement.sensor) {
         error!(
             sensor_id=measurement.sensor;
             "Got a request from sensor '{}' which is not allowed to post data here; ignoring request.",
