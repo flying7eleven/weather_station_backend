@@ -18,7 +18,7 @@ pub struct Configuration {
 pub struct DatabaseConfiguration {
     host: String,
     port: u16,
-    username: String,
+    user: String,
     password: String,
     database: String,
 }
@@ -26,11 +26,11 @@ pub struct DatabaseConfiguration {
 #[derive(Serialize, Deserialize)]
 pub struct Measurement {
     pub sensor: String,
-    pub temperature: f32,
-    pub humidity: f32,
-    pub pressure: f32,
-    pub raw_voltage: f32,
-    pub charge: f32,
+    pub temperature: f64,
+    pub humidity: f64,
+    pub pressure: f64,
+    pub raw_voltage: i32,
+    pub charge: f64,
     pub firmware_version: String,
 }
 
@@ -58,9 +58,13 @@ impl Configuration {
         // do actually try to read the configuration file and return it if we succeed
         return match File::open(config_file) {
             Ok(file_handle) => {
-                let read_configuration: Configuration =
-                    serde_yaml::from_reader(file_handle).unwrap();
-                read_configuration
+                return match serde_yaml::from_reader(file_handle) {
+                    Ok(configuration) => configuration,
+                    Err(error) => {
+                        error!("Could not parse '{}' as a configuration file, falling back to default configuration. The error message was: {}", config_file, error);
+                        Configuration::default()
+                    }
+                };
             }
             Err(_) => {
                 error!("Could not load '{}' as a configuration file, falling back to default configuration", config_file);
@@ -74,7 +78,7 @@ impl Configuration {
     }
 }
 
-fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
+fn calculate_absolute_humidity(temperature: f64, rel_humidity: f64) -> f64 {
     let a = if temperature >= 0.0 { 7.5 } else { 7.6 };
 
     let b = if temperature >= 0.0 { 237.3 } else { 240.7 };
@@ -83,15 +87,17 @@ fn calculate_absolute_humidity(temperature: f32, rel_humidity: f32) -> f32 {
     let m_w = 18.016;
     let t_k = temperature + 273.15;
 
-    let ssd_t = 6.1078 * f32::powf(10.0, (a * temperature) / (b + temperature));
+    let ssd_t = 6.1078 * f64::powf(10.0, (a * temperature) / (b + temperature));
     let dd_t = rel_humidity / 100.0 * ssd_t;
 
-    f32::powf(10.0, 5.0) * m_w / r_star * dd_t / t_k
+    f64::powf(10.0, 5.0) * m_w / r_star * dd_t / t_k
 }
 
 #[post("/sensor/measurement", data = "<measurement>")]
-pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
+pub async fn store_new_measurement(measurement: Json<Measurement>) -> Status {
     use log::{error, info};
+    use sqlx::query;
+    use sqlx::PgPool;
 
     if !CONFIG.is_sensor_allowed(&measurement.sensor) {
         error!(
@@ -117,16 +123,52 @@ pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
         measurement.charge,
     );
 
-    // let storage_backend = StorageBackend::with_configuration(config);
-    // storage_backend.store_measurement(
-    //     measurement.sensor.borrow(),
-    //     measurement.temperature,
-    //     measurement.humidity,
-    //     abs_humidity,
-    //     measurement.pressure,
-    //     measurement.raw_voltage,
-    //     measurement.charge,
-    // );
-    // Status::NoContent
-    Status::NotImplemented
+    let pool = PgPool::connect(
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            CONFIG.database.user,
+            CONFIG.database.password,
+            CONFIG.database.host,
+            CONFIG.database.port,
+            CONFIG.database.database
+        )
+        .as_str(),
+    )
+    .await
+    .unwrap();
+
+    let insert_query_result = query!(
+        r#"
+            INSERT INTO measurements ( id, sensor_id, firmware, timestamp, temperature, rel_humidity, abs_humidity, pressure, raw_voltage, charge )
+            VALUES ( DEFAULT, $1, $2, NOW(), $3, $4, $5, $6, $7, $8 )
+            RETURNING id
+        "#,
+        measurement.sensor,
+        measurement.firmware_version,
+        measurement.temperature,
+        measurement.humidity,
+        abs_humidity,
+        measurement.pressure,
+        measurement.raw_voltage,
+        measurement.charge,
+    )
+    .fetch_one(&pool)
+    .await;
+
+    return match insert_query_result {
+        Ok(_) => {
+            info!(
+                sensor_id=measurement.sensor;
+                "Successfully stored measurement in database"
+            );
+            Status::NoContent
+        }
+        Err(e) => {
+            error!(
+                sensor_id=measurement.sensor;
+                "Could not store measurement in database: {}", e
+            );
+            Status::InternalServerError
+        }
+    };
 }
