@@ -14,6 +14,6 @@ RUN cargo build --release
 FROM debian:bullseye
 RUN apt update && apt install -y openssl ca-certificates
 COPY --from=build_environment /build/target/release/weather_station_backend /usr/bin/weather_station_backend
-EXPOSE 8000
+EXPOSE 5471
 ENV RUST_BACKTRACE=full
-CMD ["/usr/bin/weather_station_backend", "run"]
+CMD ["/usr/bin/weather_station_backend"]

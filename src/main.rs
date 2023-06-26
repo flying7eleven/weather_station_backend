@@ -10,6 +10,8 @@ fn get_version_str() -> String {
 
 async fn run_server() {
     use log::info;
+    use rocket::config::{Shutdown, Sig};
+    use rocket::Config as RocketConfig;
     use rocket::{catchers, routes};
     use weather_station_backend::Configuration;
 
@@ -27,8 +29,28 @@ async fn run_server() {
         info!("{} is a valid sensor identifier", sensor_id);
     }
 
+    // rocket configuration figment
+    let rocket_configuration_figment = RocketConfig::figment()
+        .merge(("port", 5471))
+        .merge(("address", std::net::Ipv4Addr::new(0, 0, 0, 0)))
+        .merge((
+            "shutdown",
+            Shutdown {
+                ctrlc: true,
+                signals: {
+                    let mut set = std::collections::HashSet::new();
+                    set.insert(Sig::Term);
+                    set
+                },
+                grace: 2,
+                mercy: 3,
+                force: true,
+                __non_exhaustive: (),
+            },
+        ));
+
     // initialize the REST part
-    let _ = rocket::build()
+    let _ = rocket::custom(rocket_configuration_figment)
         .register(
             "/",
             catchers![
