@@ -1,0 +1,10 @@
+version: '3'
+services:
+  weather_station_backend:
+    container_name: weather_station_backend
+    image: wsb:test
+    restart: no
+    volumes:
+      - ./config.yml:/etc/weather_station_backend/config.yml:ro
+    ports:
+      - "5471:5471"
