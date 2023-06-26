@@ -1,18 +1,8 @@
-fn get_version_str() -> String {
-    format!(
-        "{}.{}.{}{}",
-        env!("CARGO_PKG_VERSION_MAJOR"),
-        env!("CARGO_PKG_VERSION_MINOR"),
-        env!("CARGO_PKG_VERSION_PATCH"),
-        option_env!("CARGO_PKG_VERSION_PRE").unwrap_or("")
-    )
-}
-
 async fn run_server() {
-    use log::info;
+    use log::{debug, info};
     use rocket::config::{Shutdown, Sig};
+    use rocket::routes;
     use rocket::Config as RocketConfig;
-    use rocket::{catchers, routes};
     use weather_station_backend::Configuration;
 
     // read the configuration file for showing some useful information later on
@@ -20,13 +10,16 @@ async fn run_server() {
 
     // tell the user that we started to spin up the API
     info!(
-        "Starting up the REST API for the Weather Station in version {}...",
-        get_version_str()
+        "Starting up the REST API for the Weather Station in version {}.{}.{}{}...",
+        env!("CARGO_PKG_VERSION_MAJOR"),
+        env!("CARGO_PKG_VERSION_MINOR"),
+        env!("CARGO_PKG_VERSION_PATCH"),
+        option_env!("CARGO_PKG_VERSION_PRE").unwrap_or("")
     );
 
     // print all valid sensors
     for sensor_id in config.allowed_sensors.iter() {
-        info!("{} is a valid sensor identifier", sensor_id);
+        debug!("{} is a valid sensor identifier", sensor_id);
     }
 
     // rocket configuration figment
@@ -51,18 +44,6 @@ async fn run_server() {
 
     // initialize the REST part
     let _ = rocket::custom(rocket_configuration_figment)
-        .register(
-            "/",
-            catchers![
-                weather_station_backend::not_found,
-                weather_station_backend::internal_error,
-                weather_station_backend::unauthorized,
-                weather_station_backend::forbidden,
-                weather_station_backend::unprocessable_entity,
-                weather_station_backend::bad_request,
-                weather_station_backend::not_implemented,
-            ],
-        )
         .mount(
             "/v1",
             routes![weather_station_backend::store_new_measurement],
