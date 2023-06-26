@@ -1,8 +1,13 @@
 [package]
 name = "weather_station_backend"
-version = "0.5.3"
+version = "0.6.0"
 authors = ["Tim Janke <tim+github@janke.biz>"]
 edition = "2021"
+repository = "https://github.com/flying7eleven/weather_station_backend"
+description = "A quite simple backend to accept data from a weather station and store it in a database."
+readme = "README.md"
+license = "MIT"
+rust-version = "1.60.0"
 
 [[bin]]
 name = "weather_station_backend"
