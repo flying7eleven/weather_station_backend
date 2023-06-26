@@ -34,14 +34,14 @@ impl Default for Configuration {
 
 impl Configuration {
     pub fn from_defaut_locations() -> Configuration {
-        use log::{info, warn};
+        use log::{debug, warn};
         use std::fs::metadata;
 
         if metadata("/etc/weather_station_backend/config.yml").is_ok() {
-            info!("Found '/etc/weather_station_backend/config.yml' and using it as a configuration for this instance of the program");
+            debug!("Found '/etc/weather_station_backend/config.yml' and using it as a configuration for this instance of the program");
             return Configuration::from_file("/etc/weather_station_backend/config.yml");
         } else if metadata("config.yml").is_ok() {
-            info!("Found config.yml in the current directory and using it as a configuration for this instance of the program");
+            debug!("Found config.yml in the current directory and using it as a configuration for this instance of the program");
             return Configuration::from_file("config.yml");
         }
         warn!("Could not find any configuration file, using default values for this instance of the program");
@@ -91,14 +91,19 @@ pub fn store_new_measurement(measurement: Json<Measurement>) -> Status {
     let config = Configuration::from_defaut_locations();
 
     if !config.allowed_sensors.contains(&measurement.sensor) {
-        error!("Got a request from sensor '{}' which is not allowed to post data here. Ignoring request.", measurement.sensor);
+        error!(
+            sensor_id=measurement.sensor;
+            "Got a request from sensor '{}' which is not allowed to post data here; ignoring request.",
+            measurement.sensor
+        );
         return Status::Forbidden;
     }
 
     let abs_humidity = calculate_absolute_humidity(measurement.temperature, measurement.humidity);
 
     info!(
-        "sensor: {} ({}), temp.: {:02.2} °C, rel. hum.: {:02.2}%, rel. hum.: {:02.2} g/m³, press.: {:04.2} hPa, raw. voltage: {:.2} -> {:.2} %",
+        sensor_id=measurement.sensor;
+        "Received measurement: Sensor: {} ({}), Temperature: {:02.2} °C, Rel. humidity.: {:02.2}%, Abs. humidity.: {:02.2} g/m³, Pressure: {:04.2} hPa, Raw voltage: {:.2} -> {:.2} %",
         measurement.sensor,
         measurement.firmware_version,
         measurement.temperature,
