@@ -11,6 +11,16 @@ lazy_static! {
 #[derive(Default, Serialize, Deserialize)]
 pub struct Configuration {
     allowed_sensors: Vec<String>,
+    database: DatabaseConfiguration,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+pub struct DatabaseConfiguration {
+    host: String,
+    port: u16,
+    username: String,
+    password: String,
+    database: String,
 }
 
 #[derive(Serialize, Deserialize)]

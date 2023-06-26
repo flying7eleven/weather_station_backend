@@ -1,10 +1,9 @@
-influx_storage:
-  host: localhost
-  database: database_name
-  port: 8086
-  user: foo
-  password: bar
-  use_ssl: false
+database:
+  host: 127.0.0.1
+  port: 5432
+  user: weather_station
+  password: debugpassword
+  database: weather_station
 allowed_sensors:
   - deadbeef
   - baddcace
